@@ -1,0 +1,165 @@
+/**
+ * FinanzApp Charts Logic (using Chart.js)
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Solo ejecutar si Chart.js está disponible
+    if (typeof Chart === 'undefined') return;
+
+    // Colores base que se adaptan al tema
+    const getChartColors = () => {
+        const isDark = document.documentElement.classList.contains('dark-mode');
+        return {
+            textColor: isDark ? '#f8fafc' : '#0f172a',
+            gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            primary: '#4f46e5',
+            success: '#10b981',
+            danger: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6',
+            palette: ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b']
+        };
+    };
+
+    // Configuración global de Chart.js
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = getChartColors().textColor;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+    Chart.defaults.plugins.tooltip.titleFont.family = "'Outfit', sans-serif";
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.elements.line.tension = 0.4; // Curvas suaves
+
+    // Referencias a los gráficos para poder actualizarlos si cambia el tema
+    const activeCharts = [];
+
+    // Función para inicializar gráficos
+    const initCharts = () => {
+        const colors = getChartColors();
+        
+        // 1. Gráfico de Tendencia Mensual (Líneas)
+        const tendenciaCanvas = document.getElementById('chartTendencia');
+        if (tendenciaCanvas && tendenciaCanvas.dataset.chart) {
+            const data = JSON.parse(tendenciaCanvas.dataset.chart);
+            
+            const labels = data.map(d => 'Día ' + d.dia);
+            const ingresos = data.map(d => d.ingresos);
+            const gastos = data.map(d => d.gastos);
+            
+            activeCharts.push(new Chart(tendenciaCanvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: ingresos,
+                            borderColor: colors.success,
+                            backgroundColor: colors.success + '20',
+                            borderWidth: 2,
+                            fill: true,
+                            pointBackgroundColor: colors.success,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Gastos',
+                            data: gastos,
+                            borderColor: colors.danger,
+                            backgroundColor: colors.danger + '20',
+                            borderWidth: 2,
+                            fill: true,
+                            pointBackgroundColor: colors.danger,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 6 } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: colors.gridColor, drawBorder: false },
+                            ticks: { 
+                                callback: function(value) { return '$' + new Intl.NumberFormat('es-CO').format(value); }
+                            }
+                        },
+                        x: {
+                            grid: { display: false, drawBorder: false }
+                        }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            }));
+        }
+
+        // 2. Gráfico Gastos por Categoría (Doughnut)
+        const categoriasCanvas = document.getElementById('chartCategorias');
+        if (categoriasCanvas && categoriasCanvas.dataset.chart) {
+            const data = JSON.parse(categoriasCanvas.dataset.chart);
+            
+            const labels = [];
+            const amounts = [];
+            const bgColors = [];
+            
+            data.forEach((item, index) => {
+                labels.push(item.nombre);
+                amounts.push(item.total);
+                // Usar el color de la categoría si existe, o uno de la paleta
+                bgColors.push(item.color || colors.palette[index % colors.palette.length]);
+            });
+            
+            if(data.length === 0) {
+                // Estado vacío
+                labels.push('Sin gastos');
+                amounts.push(1);
+                bgColors.push(document.documentElement.classList.contains('dark-mode') ? '#334155' : '#e2e8f0');
+            }
+            
+            activeCharts.push(new Chart(categoriasCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: amounts,
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(data.length === 0) return ' No hay datos este mes';
+                                    let label = context.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed !== null) {
+                                        label += '$' + new Intl.NumberFormat('es-CO').format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+    };
+
+    // Inicializar gráficos
+    initCharts();
+    });
+
+});
