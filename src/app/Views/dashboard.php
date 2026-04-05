@@ -2,16 +2,16 @@
 <?php include_once __DIR__ . '/includes/sidebar.php'; ?>
 
 <?php
-$alcancia = $estado['alcancia'] ?? [];
-$metas = $estado['metas'] ?? [];
-$depositos = $estado['ultimos_depositos'] ?? [];
-$retiros = $estado['ultimos_retiros'] ?? [];
-$resumen = $estado['resumen'] ?? ['total_depositos' => 0, 'acumulado_depositos' => 0];
+    $alcancia  = $estado['alcancia'] ?? [];
+    $metas     = $estado['metas'] ?? [];
+    $depositos = $estado['ultimos_depositos'] ?? [];
+    $retiros   = $estado['ultimos_retiros'] ?? [];
+    $resumen   = $estado['resumen'] ?? ['total_depositos' => 0, 'acumulado_depositos' => 0];
 
-$totalAhorrado = (float)($alcancia['total_ahorrado'] ?? 0);
-$metaGeneral = (float)($alcancia['meta_general'] ?? 0);
-$avanceGeneral = (float)($alcancia['avance_general_porcentaje'] ?? 0);
-$moneda = $alcancia['moneda'] ?? 'COP';
+    $totalAhorrado = (float) ($alcancia['total_ahorrado'] ?? 0);
+    $metaGeneral   = (float) ($alcancia['meta_general'] ?? 0);
+    $avanceGeneral = (float) ($alcancia['avance_general_porcentaje'] ?? 0);
+    $moneda        = $alcancia['moneda'] ?? 'COP';
 ?>
 
 <style>
@@ -79,7 +79,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         <div class="card h-100 shadow-sm border-start border-4 border-info">
             <div class="card-body">
                 <div class="text-muted small text-uppercase">Depositos Registrados</div>
-                <div id="total-depositos" class="fs-3 fw-bold text-info"><?php echo number_format((int)$resumen['total_depositos'], 0, ',', '.'); ?></div>
+                <div id="total-depositos" class="fs-3 fw-bold text-info"><?php echo number_format((int) $resumen['total_depositos'], 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         </div>
         <div class="d-flex justify-content-between mt-2 text-muted small">
             <span id="texto-avance"><?php echo number_format($avanceGeneral, 2, ',', '.'); ?>% completado</span>
-            <span id="texto-acumulado">Acumulado en depositos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float)$resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
+            <span id="texto-acumulado">Acumulado en depositos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
         </div>
     </div>
 </div>
@@ -113,11 +113,11 @@ $moneda = $alcancia['moneda'] ?? 'COP';
                 <?php else: ?>
                     <?php foreach ($metas as $meta): ?>
                         <?php
-                            $montoActual = (float)($meta['monto_actual'] ?? 0);
-                            $montoObjetivo = (float)($meta['monto_objetivo'] ?? 0);
-                            $avance = $montoObjetivo > 0 ? min(100, ($montoActual / $montoObjetivo) * 100) : 0;
+                            $montoActual   = (float) ($meta['monto_actual'] ?? 0);
+                            $montoObjetivo = (float) ($meta['monto_objetivo'] ?? 0);
+                            $avance        = $montoObjetivo > 0 ? min(100, ($montoActual / $montoObjetivo) * 100) : 0;
                         ?>
-                        <div class="mb-3 border rounded p-3 bg-light-subtle" data-meta-id="<?php echo (int)$meta['id']; ?>">
+                        <div class="mb-3 border rounded p-3 bg-light-subtle" data-meta-id="<?php echo (int) $meta['id']; ?>">
                             <div class="d-flex justify-content-between">
                                 <strong><?php echo htmlspecialchars($meta['nombre']); ?></strong>
                                 <span class="text-muted small"><?php echo number_format($avance, 1, ',', '.'); ?>%</span>
@@ -126,17 +126,17 @@ $moneda = $alcancia['moneda'] ?? 'COP';
                                 <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoActual, 0, ',', '.'); ?> de <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoObjetivo, 0, ',', '.'); ?>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar <?php echo !empty($meta['activa']) ? 'bg-primary' : 'bg-secondary'; ?>" style="width: <?php echo $avance; ?>%"></div>
+                                <div class="progress-bar <?php echo ! empty($meta['activa']) ? 'bg-primary' : 'bg-secondary'; ?>" style="width: <?php echo $avance; ?>%"></div>
                             </div>
-                            <form class="form-editar-meta mt-3" data-meta-id="<?php echo (int)$meta['id']; ?>">
+                            <form class="form-editar-meta mt-3" data-meta-id="<?php echo (int) $meta['id']; ?>">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-5">
-                                        <label class="form-label small mb-1" for="meta-nombre-<?php echo (int)$meta['id']; ?>">Nombre meta</label>
-                                        <input id="meta-nombre-<?php echo (int)$meta['id']; ?>" type="text" class="form-control form-control-sm" name="nombre" maxlength="120" value="<?php echo htmlspecialchars($meta['nombre']); ?>" required>
+                                        <label class="form-label small mb-1" for="meta-nombre-<?php echo (int) $meta['id']; ?>">Nombre meta</label>
+                                        <input id="meta-nombre-<?php echo (int) $meta['id']; ?>" type="text" class="form-control form-control-sm" name="nombre" maxlength="120" value="<?php echo htmlspecialchars($meta['nombre']); ?>" required>
                                     </div>
                                     <div class="col-md-5">
-                                        <label class="form-label small mb-1" for="meta-monto-<?php echo (int)$meta['id']; ?>">Monto objetivo</label>
-                                        <input id="meta-monto-<?php echo (int)$meta['id']; ?>" type="number" class="form-control form-control-sm" name="monto_objetivo" min="1" step="1" value="<?php echo (float)$montoObjetivo; ?>" required>
+                                        <label class="form-label small mb-1" for="meta-monto-<?php echo (int) $meta['id']; ?>">Monto objetivo</label>
+                                        <input id="meta-monto-<?php echo (int) $meta['id']; ?>" type="number" class="form-control form-control-sm" name="monto_objetivo" min="1" step="1" value="<?php echo (float) $montoObjetivo; ?>" required>
                                     </div>
                                     <div class="col-md-2 d-grid">
                                         <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
@@ -173,8 +173,8 @@ $moneda = $alcancia['moneda'] ?? 'COP';
                                 <?php foreach ($depositos as $d): ?>
                                     <tr>
                                         <td class="ps-3"><?php echo htmlspecialchars($d['created_at'] ?? ''); ?></td>
-                                        <td class="fw-semibold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float)$d['monto'], 0, ',', '.'); ?></td>
-                                        <td><?php echo isset($d['pulsos']) ? (int)$d['pulsos'] : '-'; ?></td>
+                                        <td class="fw-semibold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $d['monto'], 0, ',', '.'); ?></td>
+                                        <td><?php echo isset($d['pulsos']) ? (int) $d['pulsos'] : '-'; ?></td>
                                         <td><?php echo htmlspecialchars($d['origen'] ?? ''); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -211,7 +211,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
                         <?php foreach ($retiros as $r): ?>
                             <tr>
                                 <td class="ps-3"><?php echo htmlspecialchars($r['created_at'] ?? ''); ?></td>
-                                <td class="fw-semibold text-danger"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float)$r['monto_retirado'], 0, ',', '.'); ?></td>
+                                <td class="fw-semibold text-danger"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $r['monto_retirado'], 0, ',', '.'); ?></td>
                                 <td><?php echo htmlspecialchars($r['usuario_nombre'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($r['motivo'] ?? '-'); ?></td>
                             </tr>
@@ -223,16 +223,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
     </div>
 </div>
 
-<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script>
-    const WS_CONFIG = {
-        key: '<?php echo addslashes(SOKETI_APP_KEY); ?>',
-        wsHost: '<?php echo addslashes(SOKETI_WS_HOST); ?>',
-        wsPort: <?php echo (int)SOKETI_WS_PORT; ?>,
-        forceTLS: <?php echo SOKETI_FORCE_TLS ? 'true' : 'false'; ?>,
-        authEndpoint: 'api/ws/auth'
-    };
-
     function formatMoney(value) {
         return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Number(value || 0));
     }
@@ -438,99 +429,35 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         });
     }
 
-    function startRealtime() {
-        if (typeof window.Pusher !== 'undefined') {
-            window.Pusher.logToConsole = false;
-
-            const pusher = new window.Pusher(WS_CONFIG.key, {
-                wsHost: WS_CONFIG.wsHost,
-                wsPort: WS_CONFIG.wsPort,
-                forceTLS: WS_CONFIG.forceTLS,
-                enabledTransports: ['ws', 'wss'],
-                authEndpoint: WS_CONFIG.authEndpoint,
-                auth: {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                }
-            });
-
-            const channel = pusher.subscribe('private-alcancia.1');
-            channel.bind('deposito.registrado', (eventData) => {
-                if (eventData && eventData.estado) {
-                    renderEstado(eventData.estado);
-                }
-            });
-
-            channel.bind('comando.emitido', (eventData) => {
-                console.log('Comando emitido:', eventData);
-            });
-
-            channel.bind('meta.actualizada', (eventData) => {
-                if (eventData && eventData.estado) {
-                    renderEstado(eventData.estado);
-                }
-            });
-
-            channel.bind('alcancia.vaciada', (eventData) => {
-                if (eventData && eventData.estado) {
-                    renderEstado(eventData.estado);
-                }
-            });
-
-            channel.bind('pusher:subscription_error', () => {
-                startSSEOrPollingFallback();
-            });
-
-            const syncBtn = document.getElementById('btn-sync-oled');
-            if (syncBtn) {
-                syncBtn.addEventListener('click', () => {
-                    fetch('api/alcancia/comando', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            accion: 'sync_state',
-                            datos: { requested_from: 'dashboard' }
-                        })
-                    })
-                        .then((r) => r.json())
-                        .then((data) => {
-                            if (!data.ok) {
-                                console.error('No se pudo enviar comando:', data);
-                            }
-                        })
-                        .catch((e) => console.error('Error enviando comando:', e));
-                });
-            }
-
+    function bindSyncButton() {
+        const syncBtn = document.getElementById('btn-sync-oled');
+        if (!syncBtn) {
             return;
         }
 
-        startSSEOrPollingFallback();
+        syncBtn.addEventListener('click', () => {
+            fetch('api/alcancia/comando', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accion: 'sync_state',
+                    datos: { requested_from: 'dashboard' }
+                })
+            })
+                .then((r) => r.json())
+                .then((data) => {
+                    if (!data.ok) {
+                        showMessage('danger', 'No se pudo enviar comando de sincronizacion');
+                        return;
+                    }
+
+                    showMessage('success', 'Sincronizacion solicitada');
+                })
+                .catch(() => showMessage('danger', 'Error enviando comando de sincronizacion'));
+        });
     }
 
-    function startSSEOrPollingFallback() {
-        if (typeof EventSource !== 'undefined') {
-            const source = new EventSource('api/alcancia/stream');
-            source.addEventListener('estado', (event) => {
-                try {
-                    const payload = JSON.parse(event.data);
-                    renderEstado(payload);
-                } catch (e) {
-                    console.error('Error parseando stream:', e);
-                }
-            });
-
-            source.onerror = () => {
-                source.close();
-                startPollingFallback();
-            };
-        } else {
-            startPollingFallback();
-        }
-    }
-
-    function startPollingFallback() {
+    function startAutoRefresh() {
         const refresh = () => {
             fetch('api/alcancia/status?limit=10')
                 .then((r) => r.json())
@@ -539,12 +466,13 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         };
 
         refresh();
-        setInterval(refresh, 5000);
+        setInterval(refresh, 2000);
     }
 
     bindMetaForms();
     bindVaciarButton();
-    startRealtime();
+    bindSyncButton();
+    startAutoRefresh();
 </script>
 
 <?php include_once __DIR__ . '/includes/footer.php'; ?>
