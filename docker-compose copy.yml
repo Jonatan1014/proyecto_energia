@@ -14,6 +14,30 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - SOKETI_APP_ID=${SOKETI_APP_ID:-alcancia-app}
+      - SOKETI_APP_KEY=${SOKETI_APP_KEY:-alcancia-key}
+      - SOKETI_APP_SECRET=${SOKETI_APP_SECRET:-alcancia-secret}
+      - SOKETI_HOST=${SOKETI_HOST:-soketi}
+      - SOKETI_PORT=${SOKETI_PORT:-6001}
+      - SOKETI_SCHEME=${SOKETI_SCHEME:-http}
+      - SOKETI_WS_HOST=${SOKETI_WS_HOST:-websocket.systemautomatic.xyz}
+      - SOKETI_WS_PORT=${SOKETI_WS_PORT:-443}
+      - SOKETI_FORCE_TLS=${SOKETI_FORCE_TLS:-true}
+      - SOKETI_METRICS_HOST=${SOKETI_METRICS_HOST:-metrics.systemautomatic.xyz}
+      - SOKETI_METRICS_PORT=${SOKETI_METRICS_PORT:-9601}
+    depends_on:
+      - soketi
+    restart: unless-stopped
+
+  soketi:
+    image: quay.io/soketi/soketi:latest-16-alpine
+    environment:
+      - SOKETI_DEBUG=1
+      - SOKETI_DEFAULT_APP_ID=${SOKETI_APP_ID:-alcancia-app}
+      - SOKETI_DEFAULT_APP_KEY=${SOKETI_APP_KEY:-alcancia-key}
+      - SOKETI_DEFAULT_APP_SECRET=${SOKETI_APP_SECRET:-alcancia-secret}
+    ports:
+      - "${SOKETI_WS_PORT:-6001}:6001"
     restart: unless-stopped
 
 volumes:

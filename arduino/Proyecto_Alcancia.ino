@@ -52,6 +52,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -61,13 +62,13 @@
 // =====================================================================
 
 // --- Red Wi-Fi ---
-const char* ssid = "Jonatan";
-const char* password = "Balon100.";
+const char* ssid = "Internet";
+const char* password = "balon100";
 
 // --- API (Servidor Local XAMPP o Nube) ---
 // Cambia a la IP de tu PC en la red local (ej: 192.168.1.X)
-const char* api_url_post_coin = "https://n8n.systemautomatic.xyz/webhook/alcancia";
-const char* api_url_get_status = "https://n8n.systemautomatic.xyz/webhook/alcancia/status";
+const char* api_url_post_coin = "https://alcancia.systemautomatic.xyz/api/alcancia/registrar";
+const char* api_url_get_status = "https://alcancia.systemautomatic.xyz/api/alcancia/device-state";
 
 // --- Pines ---
 const int PIN_COIN   = 4;
@@ -121,11 +122,14 @@ volatile unsigned long lastPulseTime = 0;
 int totalSaved       = 0;
 int goalAmount       = 100000;
 int pendingSyncCoins = 0;
+String currentGoalName = "Meta General";
 
 // --- Control de pantalla ---
 unsigned long lastDisplayUpdate   = 0;
 unsigned long coinNotificationEnd = 0;
 int lastCoinInserted              = 0;
+unsigned long lastSyncMillis      = 0;
+const unsigned long statusSyncInterval = 60000;
 
 // =====================================================================
 // INTERRUPCIÓN - Se ejecuta en cada pulso del monedero
@@ -343,7 +347,7 @@ void loop() {
 
       beepCoinAccepted();
       updateDisplay(coinValue);
-      sendCoinData(coinValue);
+      sendCoinData(coinValue, pulsesReceived);
 
       // Verificar si alcanzó la meta
       if (totalSaved >= goalAmount && (totalSaved - coinValue) < goalAmount) {
@@ -369,6 +373,12 @@ void loop() {
     updateDisplay(0);
   }
 
+  // Sincronizar estado remoto cada minuto para mantener OLED alineada con BD
+  if (WiFi.status() == WL_CONNECTED && (millis() - lastSyncMillis) >= statusSyncInterval) {
+    fetchStatusFromAPI();
+    lastSyncMillis = millis();
+  }
+
   // Pequeña pausa para no saturar el loop
   delay(10);
 }
@@ -377,14 +387,19 @@ void loop() {
 // ENVIAR MONEDA A LA API
 // =====================================================================
 
-void sendCoinData(int amount) {
+void sendCoinData(int amount, int pulses) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(api_url_post_coin);
     http.addHeader("Content-Type", "application/json");
 
-    // JSON con monto y total actual
-    String jsonPayload = "{\"monto\": " + String(amount) + ", \"total\": " + String(totalSaved) + "}";
+    // JSON con datos del deposito para trazabilidad en el dashboard
+    String jsonPayload = "{";
+    jsonPayload += "\"monto\": " + String(amount) + ",";
+    jsonPayload += "\"pulsos\": " + String(pulses) + ",";
+    jsonPayload += "\"origen\": \"esp32\",";
+    jsonPayload += "\"total\": " + String(totalSaved);
+    jsonPayload += "}";
 
     int httpResponseCode = http.POST(jsonPayload);
 
@@ -446,15 +461,34 @@ void fetchStatusFromAPI() {
 
   if (httpResponseCode == 200) {
     String payload = http.getString();
-    Serial.println("Estado recibido de API:");
-    Serial.println(payload);
+    StaticJsonDocument<1024> doc;
+    DeserializationError err = deserializeJson(doc, payload);
 
-    // TODO: Usar ArduinoJson para parsear la respuesta
-    // Ejemplo:
-    //   StaticJsonDocument<256> doc;
-    //   deserializeJson(doc, payload);
-    //   totalSaved = doc["total"];
-    //   goalAmount = doc["meta"];
+    if (err) {
+      Serial.print("Error parseando estado: ");
+      Serial.println(err.c_str());
+      http.end();
+      return;
+    }
+
+    JsonVariant data = doc["data"];
+    if (data.isNull()) {
+      Serial.println("Estado sin campo data");
+      http.end();
+      return;
+    }
+
+    totalSaved = (int)(data["total_ahorrado"] | totalSaved);
+    goalAmount = (int)(data["meta_objetivo"] | data["meta_general"] | goalAmount);
+    currentGoalName = (const char*)(data["meta_nombre"] | "Meta General");
+
+    Serial.println("Estado sincronizado desde API");
+    Serial.print("Total: $");
+    Serial.println(totalSaved);
+    Serial.print("Meta: ");
+    Serial.println(currentGoalName);
+
+    updateDisplay(0);
   } else {
     Serial.print("Error al obtener estado (HTTP ");
     Serial.print(httpResponseCode);
@@ -487,6 +521,14 @@ void updateDisplay(int justInsertedCoin) {
   display.setCursor(0, 34);
   display.print("Meta: $");
   display.println(goalAmount);
+
+  // Nombre de meta (truncado para OLED)
+  display.setCursor(0, 43);
+  String goalLine = currentGoalName;
+  if (goalLine.length() > 18) {
+    goalLine = goalLine.substring(0, 18);
+  }
+  display.println(goalLine);
 
   // --- Barra de progreso ---
   int progress = 0;

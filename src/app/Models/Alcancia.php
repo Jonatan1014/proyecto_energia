@@ -149,4 +149,31 @@ class Alcancia {
             ],
         ];
     }
+
+    public function getEstadoDispositivo(): array {
+        $estado = $this->getEstado(1);
+        $metas = $estado['metas'] ?? [];
+
+        $metaPrincipal = null;
+        foreach ($metas as $meta) {
+            if (!empty($meta['activa'])) {
+                $metaPrincipal = $meta;
+                break;
+            }
+        }
+
+        if ($metaPrincipal === null && !empty($metas)) {
+            $metaPrincipal = $metas[0];
+        }
+
+        return [
+            'total_ahorrado' => (float)($estado['alcancia']['total_ahorrado'] ?? 0),
+            'meta_general' => (float)($estado['alcancia']['meta_general'] ?? 0),
+            'moneda' => (string)($estado['alcancia']['moneda'] ?? 'COP'),
+            'meta_nombre' => (string)($metaPrincipal['nombre'] ?? 'Meta General'),
+            'meta_actual' => (float)($metaPrincipal['monto_actual'] ?? 0),
+            'meta_objetivo' => (float)($metaPrincipal['monto_objetivo'] ?? ($estado['alcancia']['meta_general'] ?? 0)),
+            'ultima_actualizacion' => (string)($estado['alcancia']['updated_at'] ?? date('Y-m-d H:i:s')),
+        ];
+    }
 }

@@ -22,6 +22,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
             Moneda: <?php echo htmlspecialchars($moneda); ?>
         </span>
+        <button id="btn-sync-oled" type="button" class="btn btn-sm btn-outline-primary ms-2">Sincronizar OLED</button>
     </div>
 </div>
 
@@ -30,7 +31,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         <div class="card h-100 shadow-sm border-start border-4 border-success">
             <div class="card-body">
                 <div class="text-muted small text-uppercase">Total Ahorrado</div>
-                <div class="fs-3 fw-bold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($totalAhorrado, 0, ',', '.'); ?></div>
+                <div id="total-ahorrado" class="fs-3 fw-bold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($totalAhorrado, 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
@@ -38,7 +39,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         <div class="card h-100 shadow-sm border-start border-4 border-primary">
             <div class="card-body">
                 <div class="text-muted small text-uppercase">Meta General</div>
-                <div class="fs-3 fw-bold text-primary"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($metaGeneral, 0, ',', '.'); ?></div>
+                <div id="meta-general" class="fs-3 fw-bold text-primary"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($metaGeneral, 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
@@ -46,7 +47,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         <div class="card h-100 shadow-sm border-start border-4 border-info">
             <div class="card-body">
                 <div class="text-muted small text-uppercase">Depositos Registrados</div>
-                <div class="fs-3 fw-bold text-info"><?php echo number_format((int)$resumen['total_depositos'], 0, ',', '.'); ?></div>
+                <div id="total-depositos" class="fs-3 fw-bold text-info"><?php echo number_format((int)$resumen['total_depositos'], 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
@@ -58,11 +59,11 @@ $moneda = $alcancia['moneda'] ?? 'COP';
     </div>
     <div class="card-body">
         <div class="progress" style="height: 12px;">
-            <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%;"></div>
+            <div id="barra-avance" class="progress-bar bg-success" role="progressbar" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%;"></div>
         </div>
         <div class="d-flex justify-content-between mt-2 text-muted small">
-            <span><?php echo number_format($avanceGeneral, 2, ',', '.'); ?>% completado</span>
-            <span>Acumulado en depositos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float)$resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
+            <span id="texto-avance"><?php echo number_format($avanceGeneral, 2, ',', '.'); ?>% completado</span>
+            <span id="texto-acumulado">Acumulado en depositos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float)$resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
         </div>
     </div>
 </div>
@@ -121,7 +122,7 @@ $moneda = $alcancia['moneda'] ?? 'COP';
                                     <th>Origen</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tabla-depositos-body">
                                 <?php foreach ($depositos as $d): ?>
                                     <tr>
                                         <td class="ps-3"><?php echo htmlspecialchars($d['created_at'] ?? ''); ?></td>
@@ -138,5 +139,163 @@ $moneda = $alcancia['moneda'] ?? 'COP';
         </div>
     </div>
 </div>
+
+<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<script>
+    const WS_CONFIG = {
+        key: '<?php echo addslashes(SOKETI_APP_KEY); ?>',
+        wsHost: '<?php echo addslashes(SOKETI_WS_HOST); ?>',
+        wsPort: <?php echo (int)SOKETI_WS_PORT; ?>,
+        forceTLS: <?php echo SOKETI_FORCE_TLS ? 'true' : 'false'; ?>,
+        authEndpoint: 'api/ws/auth'
+    };
+
+    function formatMoney(value) {
+        return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+
+    function formatNumber(value) {
+        return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+
+    function renderEstado(payload) {
+        const data = payload?.data || payload;
+        const alcancia = data?.alcancia || {};
+        const resumen = data?.resumen || {};
+        const depositos = Array.isArray(data?.ultimos_depositos) ? data.ultimos_depositos : [];
+
+        const total = Number(alcancia.total_ahorrado || 0);
+        const meta = Number(alcancia.meta_general || 0);
+        const avance = Number(alcancia.avance_general_porcentaje || 0);
+        const acumulado = Number(resumen.acumulado_depositos || 0);
+        const totalDepositos = Number(resumen.total_depositos || 0);
+
+        const totalAhorradoEl = document.getElementById('total-ahorrado');
+        const metaGeneralEl = document.getElementById('meta-general');
+        const totalDepositosEl = document.getElementById('total-depositos');
+        const barraAvanceEl = document.getElementById('barra-avance');
+        const textoAvanceEl = document.getElementById('texto-avance');
+        const textoAcumuladoEl = document.getElementById('texto-acumulado');
+        const tablaBodyEl = document.getElementById('tabla-depositos-body');
+
+        if (totalAhorradoEl) totalAhorradoEl.textContent = '$ ' + formatMoney(total);
+        if (metaGeneralEl) metaGeneralEl.textContent = '$ ' + formatMoney(meta);
+        if (totalDepositosEl) totalDepositosEl.textContent = formatNumber(totalDepositos);
+        if (barraAvanceEl) barraAvanceEl.style.width = Math.max(0, Math.min(100, avance)) + '%';
+        if (textoAvanceEl) textoAvanceEl.textContent = avance.toFixed(2).replace('.', ',') + '% completado';
+        if (textoAcumuladoEl) textoAcumuladoEl.textContent = 'Acumulado en depositos: $ ' + formatMoney(acumulado);
+
+        if (tablaBodyEl) {
+            tablaBodyEl.innerHTML = '';
+            if (depositos.length === 0) {
+                tablaBodyEl.innerHTML = '<tr><td class="ps-3 text-muted" colspan="4">No hay depositos registrados.</td></tr>';
+            } else {
+                depositos.forEach((d) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML =
+                        '<td class="ps-3">' + (d.created_at || '') + '</td>' +
+                        '<td class="fw-semibold text-success">$ ' + formatMoney(d.monto || 0) + '</td>' +
+                        '<td>' + (d.pulsos ?? '-') + '</td>' +
+                        '<td>' + (d.origen || '') + '</td>';
+                    tablaBodyEl.appendChild(row);
+                });
+            }
+        }
+    }
+
+    function startRealtime() {
+        if (typeof window.Pusher !== 'undefined') {
+            window.Pusher.logToConsole = false;
+
+            const pusher = new window.Pusher(WS_CONFIG.key, {
+                wsHost: WS_CONFIG.wsHost,
+                wsPort: WS_CONFIG.wsPort,
+                forceTLS: WS_CONFIG.forceTLS,
+                enabledTransports: ['ws', 'wss'],
+                authEndpoint: WS_CONFIG.authEndpoint,
+                auth: {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            });
+
+            const channel = pusher.subscribe('private-alcancia.1');
+            channel.bind('deposito.registrado', (eventData) => {
+                if (eventData && eventData.estado) {
+                    renderEstado(eventData.estado);
+                }
+            });
+
+            channel.bind('comando.emitido', (eventData) => {
+                console.log('Comando emitido:', eventData);
+            });
+
+            channel.bind('pusher:subscription_error', () => {
+                startSSEOrPollingFallback();
+            });
+
+            const syncBtn = document.getElementById('btn-sync-oled');
+            if (syncBtn) {
+                syncBtn.addEventListener('click', () => {
+                    fetch('api/alcancia/comando', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accion: 'sync_state',
+                            datos: { requested_from: 'dashboard' }
+                        })
+                    })
+                        .then((r) => r.json())
+                        .then((data) => {
+                            if (!data.ok) {
+                                console.error('No se pudo enviar comando:', data);
+                            }
+                        })
+                        .catch((e) => console.error('Error enviando comando:', e));
+                });
+            }
+
+            return;
+        }
+
+        startSSEOrPollingFallback();
+    }
+
+    function startSSEOrPollingFallback() {
+        if (typeof EventSource !== 'undefined') {
+            const source = new EventSource('api/alcancia/stream');
+            source.addEventListener('estado', (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    renderEstado(payload);
+                } catch (e) {
+                    console.error('Error parseando stream:', e);
+                }
+            });
+
+            source.onerror = () => {
+                source.close();
+                startPollingFallback();
+            };
+        } else {
+            startPollingFallback();
+        }
+    }
+
+    function startPollingFallback() {
+        const refresh = () => {
+            fetch('api/alcancia/status?limit=10')
+                .then((r) => r.json())
+                .then((payload) => renderEstado(payload))
+                .catch((e) => console.error('Error refrescando estado:', e));
+        };
+
+        refresh();
+        setInterval(refresh, 5000);
+    }
+
+    startRealtime();
+</script>
 
 <?php include_once __DIR__ . '/includes/footer.php'; ?>
