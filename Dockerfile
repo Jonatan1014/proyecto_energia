@@ -4,8 +4,14 @@ FROM php:8.1-apache
 # Instalar extensiones necesarias
 RUN docker-php-ext-install pdo pdo_mysql
 
+# Habilitar rewrite para .htaccess
+RUN a2enmod rewrite
+
 # Copiar el código de la aplicación
 COPY . /var/www/html
+
+# Aplicar VirtualHost de la app (DocumentRoot en src/public)
+COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 
 WORKDIR /var/www/html
 
