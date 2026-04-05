@@ -27,7 +27,6 @@ return [
     '/api/alcancia/meta/actualizar' => ['controller' => 'AlcanciaApiController', 'action' => 'actualizarMeta'],
     '/api/alcancia/vaciar' => ['controller' => 'AlcanciaApiController', 'action' => 'vaciar'],
     '/api/alcancia/comando' => ['controller' => 'AlcanciaApiController', 'action' => 'enviarComando'],
-    '/api/ws/auth' => ['controller' => 'AlcanciaApiController', 'action' => 'wsAuth'],
     '/tariffs' => ['controller' => 'TariffController', 'action' => 'index'],
     '/tariffs/create' => ['controller' => 'TariffController', 'action' => 'create'],
     '/tariffs/update' => ['controller' => 'TariffController', 'action' => 'update'],

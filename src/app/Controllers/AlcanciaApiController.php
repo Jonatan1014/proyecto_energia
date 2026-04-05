@@ -3,7 +3,6 @@
 
 require_once __DIR__ . '/../Models/Alcancia.php';
 require_once __DIR__ . '/../Services/AuthService.php';
-require_once __DIR__ . '/../Services/SoketiService.php';
 
 class AlcanciaApiController {
     private const MSG_METODO_NO_PERMITIDO = 'Metodo no permitido';
@@ -12,11 +11,9 @@ class AlcanciaApiController {
     private const INPUT_STREAM = 'php://input';
 
     private Alcancia $alcanciaModel;
-    private SoketiService $soketiService;
 
     public function __construct() {
         $this->alcanciaModel = new Alcancia();
-        $this->soketiService = new SoketiService();
     }
 
     public function registrarDeposito(): void {
@@ -35,14 +32,6 @@ class AlcanciaApiController {
 
         try {
             $estado = $this->alcanciaModel->registrarDeposito($payload);
-
-            // Publicar evento realtime para dashboards conectados por Soketi
-            $this->soketiService->publish('private-alcancia.1', 'deposito.registrado', [
-                'monto' => (float)($payload['monto'] ?? 0),
-                'pulsos' => isset($payload['pulsos']) ? (int)$payload['pulsos'] : null,
-                'origen' => (string)($payload['origen'] ?? 'esp32'),
-                'estado' => $estado,
-            ]);
 
             $this->jsonResponse([
                 'ok' => true,
@@ -130,40 +119,6 @@ class AlcanciaApiController {
         }
     }
 
-    public function wsAuth(): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
-            return;
-        }
-
-        if (!AuthService::isLoggedIn()) {
-            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
-            return;
-        }
-
-        $socketId = $_POST['socket_id'] ?? '';
-        $channelName = $_POST['channel_name'] ?? '';
-
-        if ($socketId === '' || $channelName === '') {
-            $this->jsonResponse(['error' => 'socket_id y channel_name son requeridos'], 422);
-            return;
-        }
-
-        $user = AuthService::getUser() ?: [];
-        $presence = null;
-        if (strpos($channelName, 'presence-') === 0) {
-            $presence = [
-                'user_id' => (string)($user['id'] ?? 'anon'),
-                'user_info' => [
-                    'nombre' => (string)($user['nombre'] ?? 'Usuario'),
-                ],
-            ];
-        }
-
-        $authPayload = $this->soketiService->buildAuth($socketId, $channelName, $presence);
-        $this->jsonResponse($authPayload, 200);
-    }
-
     public function enviarComando(): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
@@ -198,15 +153,15 @@ class AlcanciaApiController {
             'timestamp' => date('c'),
         ];
 
-        $ok = $this->soketiService->publish('private-dispositivo.1', 'device.comando', $eventPayload);
-        // Tambien reflejar en dashboards conectados.
-        $this->soketiService->publish('private-alcancia.1', 'comando.emitido', $eventPayload);
+        if ($accion === 'sync_state') {
+            $eventPayload['datos'] = $this->alcanciaModel->getEstadoDispositivo();
+        }
 
         $this->jsonResponse([
-            'ok' => $ok,
-            'message' => $ok ? 'Comando enviado por Soketi' : 'No se pudo publicar en Soketi',
+            'ok' => true,
+            'message' => 'Comando procesado correctamente',
             'data' => $eventPayload,
-        ], $ok ? 200 : 500);
+        ], 200);
     }
 
     public function actualizarMeta(): void {
@@ -232,13 +187,6 @@ class AlcanciaApiController {
 
         try {
             $estado = $this->alcanciaModel->actualizarMeta($metaId, $nombre, $montoObjetivo);
-
-            $this->soketiService->publish('private-alcancia.1', 'meta.actualizada', [
-                'meta_id' => $metaId,
-                'nombre' => $nombre,
-                'monto_objetivo' => $montoObjetivo,
-                'estado' => $estado,
-            ]);
 
             $this->jsonResponse([
                 'ok' => true,
@@ -277,15 +225,6 @@ class AlcanciaApiController {
 
         try {
             $estado = $this->alcanciaModel->vaciarAlcancia($userId, $userName, $motivo);
-
-            $this->soketiService->publish('private-alcancia.1', 'alcancia.vaciada', [
-                'realizado_por' => [
-                    'id' => $userId,
-                    'nombre' => $userName,
-                ],
-                'motivo' => $motivo,
-                'estado' => $estado,
-            ]);
 
             $this->jsonResponse([
                 'ok' => true,

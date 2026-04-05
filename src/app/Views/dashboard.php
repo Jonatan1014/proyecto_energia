@@ -224,6 +224,8 @@
 </div>
 
 <script>
+    let isSubmittingMeta = false;
+
     function formatMoney(value) {
         return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(Number(value || 0));
     }
@@ -368,6 +370,8 @@
             form.dataset.bound = '1';
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
+                isSubmittingMeta = true;
+                form.dataset.submitting = '1';
 
                 const metaId = Number(form.getAttribute('data-meta-id') || 0);
                 const formData = new FormData(form);
@@ -386,15 +390,32 @@
                     .then((data) => {
                         if (!data.ok) {
                             showMessage('danger', data.error || 'No se pudo actualizar la meta');
+                            isSubmittingMeta = false;
+                            delete form.dataset.submitting;
                             return;
                         }
 
                         showMessage('success', data.message || 'Meta actualizada');
                         renderEstado(data);
+                        isSubmittingMeta = false;
+                        delete form.dataset.submitting;
                     })
-                    .catch(() => showMessage('danger', 'Error de red actualizando la meta'));
+                    .catch(() => {
+                        showMessage('danger', 'Error de red actualizando la meta');
+                        isSubmittingMeta = false;
+                        delete form.dataset.submitting;
+                    });
             });
         });
+    }
+
+    function isEditingMetaForm() {
+        if (isSubmittingMeta) {
+            return true;
+        }
+
+        const active = document.activeElement;
+        return !!(active && active.closest('.form-editar-meta'));
     }
 
     function bindVaciarButton() {
@@ -459,6 +480,10 @@
 
     function startAutoRefresh() {
         const refresh = () => {
+            if (isEditingMetaForm()) {
+                return;
+            }
+
             fetch('api/alcancia/status?limit=10')
                 .then((r) => r.json())
                 .then((payload) => renderEstado(payload))
