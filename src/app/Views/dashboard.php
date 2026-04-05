@@ -14,12 +14,40 @@ $avanceGeneral = (float)($alcancia['avance_general_porcentaje'] ?? 0);
 $moneda = $alcancia['moneda'] ?? 'COP';
 ?>
 
+<style>
+@media (max-width: 767.98px) {
+    .dashboard-header-actions {
+        width: 100%;
+        margin-top: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.5rem;
+    }
+
+    .dashboard-header-actions .btn,
+    .dashboard-header-actions .badge {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .table-responsive table {
+        font-size: 0.875rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+}
+</style>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-1 pb-2 mb-4 border-bottom">
     <div>
         <h1 class="h2 mb-1">Resumen de Alcancia</h1>
         <p class="text-muted mb-0">Monitorea tus depositos, metas y avance de ahorro.</p>
     </div>
-    <div class="text-end">
+    <div class="text-end dashboard-header-actions">
         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
             Moneda: <?php echo htmlspecialchars($moneda); ?>
         </span>

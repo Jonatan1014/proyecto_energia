@@ -6,14 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesion - AlcanciaApp</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 575.98px) {
+            .auth-card { border-radius: 1rem; }
+            .auth-title { font-size: 1.5rem; }
+            .auth-body { padding: 1.25rem; }
+        }
+    </style>
 </head>
 <body class="bg-light">
-    <div class="container mt-5">
+    <div class="container py-4 py-md-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-body">
-                        <h2 class="card-title text-center mb-4">Iniciar Sesión</h2>
+                <div class="card shadow auth-card">
+                    <div class="card-body auth-body">
+                        <h2 class="card-title text-center mb-4 auth-title">Iniciar Sesión</h2>
                         <?php if (isset($_SESSION['error'])): ?>
                             <div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
                         <?php endif; ?>

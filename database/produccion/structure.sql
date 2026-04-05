@@ -88,18 +88,7 @@ CREATE TABLE IF NOT EXISTS alcancia_retiros (
 	INDEX idx_retiros_usuario (usuario_id)
 ) ENGINE=InnoDB;
 
--- Cola de comandos para sincronizacion casi en tiempo real con ESP32
-CREATE TABLE IF NOT EXISTS alcancia_comandos_dispositivo (
-	id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
-	accion VARCHAR(50) NOT NULL,
-	payload JSON NULL,
-	consumido TINYINT(1) NOT NULL DEFAULT 0,
-	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	consumido_at TIMESTAMP NULL DEFAULT NULL,
-	CONSTRAINT fk_comandos_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
-	INDEX idx_comandos_consumido (alcancia_id, consumido, id)
-) ENGINE=InnoDB;
+
 
 -- Semilla base: solo una alcancia
 INSERT INTO alcancia_config (id, nombre, moneda, total_ahorrado, meta_general)
