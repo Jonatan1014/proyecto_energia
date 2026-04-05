@@ -7,6 +7,9 @@ require_once __DIR__ . '/../Services/SoketiService.php';
 
 class AlcanciaApiController {
     private const MSG_METODO_NO_PERMITIDO = 'Metodo no permitido';
+    private const MSG_JSON_INVALIDO = 'JSON invalido';
+    private const MSG_NO_AUTORIZADO = 'No autorizado';
+    private const INPUT_STREAM = 'php://input';
 
     private Alcancia $alcanciaModel;
     private SoketiService $soketiService;
@@ -22,11 +25,11 @@ class AlcanciaApiController {
             return;
         }
 
-        $rawBody = file_get_contents('php://input');
+        $rawBody = file_get_contents(self::INPUT_STREAM);
         $payload = json_decode($rawBody ?: '{}', true);
 
         if (!is_array($payload)) {
-            $this->jsonResponse(['error' => 'JSON invalido'], 400);
+            $this->jsonResponse(['error' => self::MSG_JSON_INVALIDO], 400);
             return;
         }
 
@@ -134,7 +137,7 @@ class AlcanciaApiController {
         }
 
         if (!AuthService::isLoggedIn()) {
-            $this->jsonResponse(['error' => 'No autorizado'], 401);
+            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
             return;
         }
 
@@ -168,13 +171,13 @@ class AlcanciaApiController {
         }
 
         if (!AuthService::isLoggedIn()) {
-            $this->jsonResponse(['error' => 'No autorizado'], 401);
+            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
             return;
         }
 
-        $payload = json_decode(file_get_contents('php://input') ?: '{}', true);
+        $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
         if (!is_array($payload)) {
-            $this->jsonResponse(['error' => 'JSON invalido'], 400);
+            $this->jsonResponse(['error' => self::MSG_JSON_INVALIDO], 400);
             return;
         }
 
@@ -204,6 +207,97 @@ class AlcanciaApiController {
             'message' => $ok ? 'Comando enviado por Soketi' : 'No se pudo publicar en Soketi',
             'data' => $eventPayload,
         ], $ok ? 200 : 500);
+    }
+
+    public function actualizarMeta(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
+            return;
+        }
+
+        if (!AuthService::isLoggedIn()) {
+            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
+        if (!is_array($payload)) {
+            $this->jsonResponse(['error' => self::MSG_JSON_INVALIDO], 400);
+            return;
+        }
+
+        $metaId = (int)($payload['meta_id'] ?? 0);
+        $nombre = (string)($payload['nombre'] ?? '');
+        $montoObjetivo = (float)($payload['monto_objetivo'] ?? 0);
+
+        try {
+            $estado = $this->alcanciaModel->actualizarMeta($metaId, $nombre, $montoObjetivo);
+
+            $this->soketiService->publish('private-alcancia.1', 'meta.actualizada', [
+                'meta_id' => $metaId,
+                'nombre' => $nombre,
+                'monto_objetivo' => $montoObjetivo,
+                'estado' => $estado,
+            ]);
+
+            $this->jsonResponse([
+                'ok' => true,
+                'message' => 'Meta actualizada correctamente',
+                'data' => $estado,
+            ], 200);
+        } catch (InvalidArgumentException $e) {
+            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('Error en actualizarMeta: ' . $e->getMessage());
+            $this->jsonResponse(['ok' => false, 'error' => 'Error interno al actualizar meta'], 500);
+        }
+    }
+
+    public function vaciar(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
+            return;
+        }
+
+        if (!AuthService::isLoggedIn()) {
+            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
+        if (!is_array($payload)) {
+            $this->jsonResponse(['error' => self::MSG_JSON_INVALIDO], 400);
+            return;
+        }
+
+        $motivo = isset($payload['motivo']) ? (string)$payload['motivo'] : null;
+        $user = AuthService::getUser() ?: [];
+        $userId = isset($user['id']) ? (int)$user['id'] : null;
+        $userName = trim((string)($user['nombre'] ?? 'Usuario'));
+
+        try {
+            $estado = $this->alcanciaModel->vaciarAlcancia($userId, $userName, $motivo);
+
+            $this->soketiService->publish('private-alcancia.1', 'alcancia.vaciada', [
+                'realizado_por' => [
+                    'id' => $userId,
+                    'nombre' => $userName,
+                ],
+                'motivo' => $motivo,
+                'estado' => $estado,
+            ]);
+
+            $this->jsonResponse([
+                'ok' => true,
+                'message' => 'Alcancia vaciada correctamente',
+                'data' => $estado,
+            ], 200);
+        } catch (InvalidArgumentException $e) {
+            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('Error en vaciar: ' . $e->getMessage());
+            $this->jsonResponse(['ok' => false, 'error' => 'Error interno al vaciar alcancia'], 500);
+        }
     }
 
     private function jsonResponse(array $payload, int $statusCode = 200): void {

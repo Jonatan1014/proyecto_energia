@@ -74,15 +74,56 @@ CREATE TABLE IF NOT EXISTS alcancia_depositos (
 	INDEX idx_depositos_origen (origen)
 ) ENGINE=InnoDB;
 
+-- Historial de retiros / vaciados de la alcancia
+CREATE TABLE IF NOT EXISTS alcancia_retiros (
+	id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+	alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+	monto_retirado DECIMAL(12,2) NOT NULL,
+	usuario_id INT UNSIGNED NULL,
+	usuario_nombre VARCHAR(150) NOT NULL,
+	motivo VARCHAR(255) NULL,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT fk_retiros_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+	INDEX idx_retiros_fecha (alcancia_id, created_at),
+	INDEX idx_retiros_usuario (usuario_id)
+) ENGINE=InnoDB;
+
+-- Cola de comandos para sincronizacion casi en tiempo real con ESP32
+CREATE TABLE IF NOT EXISTS alcancia_comandos_dispositivo (
+	id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+	alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+	accion VARCHAR(50) NOT NULL,
+	payload JSON NULL,
+	consumido TINYINT(1) NOT NULL DEFAULT 0,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	consumido_at TIMESTAMP NULL DEFAULT NULL,
+	CONSTRAINT fk_comandos_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+	INDEX idx_comandos_consumido (alcancia_id, consumido, id)
+) ENGINE=InnoDB;
+
 -- Semilla base: solo una alcancia
 INSERT INTO alcancia_config (id, nombre, moneda, total_ahorrado, meta_general)
 VALUES (1, 'Alcancia Principal', 'COP', 0, 100000)
 ON DUPLICATE KEY UPDATE id = id;
 
+-- Usuario predeterminado (email: admin@alcancia.local / password: password)
+INSERT INTO usuarios (nombre, apellido, email, password, is_active)
+VALUES (
+	'Admin',
+	'Alcancia',
+	'jcantillo6@udi.edu.co',
+	'$2y$10$Vs8M.kWTX4xB06GVzL0KG.2yeiCWoDeLcWjskgddtE9VXWvu8AOLi',
+	1
+)
+ON DUPLICATE KEY UPDATE
+	nombre = VALUES(nombre),
+	apellido = VALUES(apellido),
+	password = VALUES(password),
+	is_active = VALUES(is_active);
+
 -- Metas ejemplo
 INSERT INTO alcancia_metas (alcancia_id, nombre, descripcion, monto_objetivo, monto_actual, prioridad, activa, fecha_objetivo)
 VALUES
-	(1, 'Meta General', 'Objetivo principal de ahorro', 100000, 0, 1, 1, NULL),
-	(1, 'Fondo de emergencia', 'Reserva para imprevistos', 300000, 0, 2, 1, NULL)
+	(1, 'Meta General', 'Objetivo principal de ahorro', 100000, 0, 1, 1, NULL)
 ON DUPLICATE KEY UPDATE id = id;
 

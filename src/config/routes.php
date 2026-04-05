@@ -24,6 +24,8 @@ return [
     '/api/alcancia/status' => ['controller' => 'AlcanciaApiController', 'action' => 'obtenerEstado'],
     '/api/alcancia/device-state' => ['controller' => 'AlcanciaApiController', 'action' => 'obtenerEstadoDispositivo'],
     '/api/alcancia/stream' => ['controller' => 'AlcanciaApiController', 'action' => 'streamEstado'],
+    '/api/alcancia/meta/actualizar' => ['controller' => 'AlcanciaApiController', 'action' => 'actualizarMeta'],
+    '/api/alcancia/vaciar' => ['controller' => 'AlcanciaApiController', 'action' => 'vaciar'],
     '/api/alcancia/comando' => ['controller' => 'AlcanciaApiController', 'action' => 'enviarComando'],
     '/api/ws/auth' => ['controller' => 'AlcanciaApiController', 'action' => 'wsAuth'],
     '/tariffs' => ['controller' => 'TariffController', 'action' => 'index'],
