@@ -162,7 +162,7 @@ class AuthService {
                 session_start();
             }
             $_SESSION['error'] = 'Debes iniciar sesión para acceder a esta página';
-            header("Location: login");
+            header("Location: " . BASE_URL . "login");
             exit;
         }
     }

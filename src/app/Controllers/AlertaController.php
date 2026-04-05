@@ -40,7 +40,7 @@ class AlertaController {
 
         Alerta::create($data);
         $_SESSION['success'] = 'Recordatorio creado correctamente';
-        header("Location: " . BASE_URL . "/alertas");
+        header("Location: " . BASE_URL . "alertas");
         exit;
     }
 
@@ -52,7 +52,7 @@ class AlertaController {
         if ($id) {
             Alerta::markAsRead($id);
         }
-        header("Location: " . BASE_URL . "/alertas");
+        header("Location: " . BASE_URL . "alertas");
         exit;
     }
 
@@ -63,7 +63,7 @@ class AlertaController {
         $userId = AuthService::getUserId();
         Alerta::markAllAsRead($userId);
         $_SESSION['success'] = 'Todas las alertas marcadas como leídas';
-        header("Location: " . BASE_URL . "/alertas");
+        header("Location: " . BASE_URL . "alertas");
         exit;
     }
 
@@ -76,7 +76,7 @@ class AlertaController {
             Alerta::delete($id);
             $_SESSION['success'] = 'Alerta eliminada';
         }
-        header("Location: " . BASE_URL . "/alertas");
+        header("Location: " . BASE_URL . "alertas");
         exit;
     }
 }

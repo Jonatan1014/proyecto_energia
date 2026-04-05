@@ -14,7 +14,7 @@ class AuthController {
 
         if ($method === 'GET') {
             if (AuthService::isLoggedIn()) {
-                header("Location: " . BASE_URL . "/dashboard");
+                header("Location: " . BASE_URL . "dashboard");
                 exit;
             }
             include __DIR__ . '/../Views/pages-login.php';
@@ -25,13 +25,13 @@ class AuthController {
 
             if (empty($email) || empty($password)) {
                 $_SESSION['error'] = 'Por favor completa todos los campos';
-                header("Location: " . BASE_URL . "/login");
+                header("Location: " . BASE_URL . "login");
                 exit;
             }
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $_SESSION['error'] = 'El formato del correo electrónico no es válido';
-                header("Location: " . BASE_URL . "/login");
+                header("Location: " . BASE_URL . "login");
                 exit;
             }
 
@@ -40,11 +40,11 @@ class AuthController {
             if ($result['success']) {
                 $user = $_SESSION['user'];
                 $_SESSION['success'] = "¡Bienvenido, {$user['nombre']}!";
-                header("Location: " . BASE_URL . "/dashboard");
+                header("Location: " . BASE_URL . "dashboard");
                 exit;
             } else {
                 $_SESSION['error'] = $result['message'];
-                header("Location: " . BASE_URL . "/login");
+                header("Location: " . BASE_URL . "login");
                 exit;
             }
         }
@@ -59,7 +59,7 @@ class AuthController {
 
         if ($method === 'GET') {
             if (AuthService::isLoggedIn()) {
-                header("Location: " . BASE_URL . "/dashboard");
+                header("Location: " . BASE_URL . "dashboard");
                 exit;
             }
             include __DIR__ . '/../Views/pages-register.php';
@@ -78,7 +78,7 @@ class AuthController {
             if ($data['password'] !== $confirmPassword) {
                 $_SESSION['error'] = 'Las contraseñas no coinciden';
                 $_SESSION['form_data'] = $data;
-                header("Location: " . BASE_URL . "/register");
+                header("Location: " . BASE_URL . "register");
                 exit;
             }
 
@@ -86,12 +86,12 @@ class AuthController {
 
             if ($result['success']) {
                 $_SESSION['success'] = $result['message'];
-                header("Location: " . BASE_URL . "/login");
+                header("Location: " . BASE_URL . "login");
                 exit;
             } else {
                 $_SESSION['error'] = $result['message'];
                 $_SESSION['form_data'] = $data;
-                header("Location: " . BASE_URL . "/register");
+                header("Location: " . BASE_URL . "register");
                 exit;
             }
         }
@@ -107,7 +107,7 @@ class AuthController {
         AuthService::logout();
         
         $_SESSION['success'] = "Hasta pronto, {$nombre}. Has cerrado sesión correctamente.";
-        header("Location: " . BASE_URL . "/login");
+        header("Location: " . BASE_URL . "login");
         exit;
     }
 }

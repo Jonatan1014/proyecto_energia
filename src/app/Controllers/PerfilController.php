@@ -52,7 +52,7 @@ class PerfilController {
         AuthService::refreshSession();
 
         $_SESSION['success'] = 'Perfil actualizado correctamente';
-        header("Location: " . BASE_URL . "/perfil");
+        header("Location: " . BASE_URL . "perfil");
         exit;
     }
 
@@ -67,25 +67,25 @@ class PerfilController {
 
         if (!User::verifyPassword($userId, $currentPassword)) {
             $_SESSION['error'] = 'La contraseña actual es incorrecta';
-            header("Location: " . BASE_URL . "/perfil");
+            header("Location: " . BASE_URL . "perfil");
             exit;
         }
 
         if (strlen($newPassword) < 6) {
             $_SESSION['error'] = 'La nueva contraseña debe tener al menos 6 caracteres';
-            header("Location: " . BASE_URL . "/perfil");
+            header("Location: " . BASE_URL . "perfil");
             exit;
         }
 
         if ($newPassword !== $confirmPassword) {
             $_SESSION['error'] = 'Las contraseñas no coinciden';
-            header("Location: " . BASE_URL . "/perfil");
+            header("Location: " . BASE_URL . "perfil");
             exit;
         }
 
         User::changePassword($userId, $newPassword);
         $_SESSION['success'] = 'Contraseña actualizada correctamente';
-        header("Location: " . BASE_URL . "/perfil");
+        header("Location: " . BASE_URL . "perfil");
         exit;
     }
 }

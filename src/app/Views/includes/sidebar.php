@@ -1,22 +1,15 @@
 <?php
 // src/app/Views/includes/sidebar.php
 $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-// Usamos una variable local para el sidebar para no sobrescribir $user que pueda venir del controlador con datos completos
 $sidebarUser = isset($user) ? $user : ($_SESSION['user'] ?? null);
 
-// Obtener alertas no leídas para el header
-if (isset($sidebarUser) && isset($sidebarUser['id'])) {
-    require_once __DIR__ . '/../../Models/Alerta.php';
-    $alertasNoLeidas = Alerta::countNoLeidas($sidebarUser['id']);
-} else {
-    $alertasNoLeidas = 0;
-}
+$alertasNoLeidas = 0;
 ?>
 <aside class="d-flex flex-column flex-shrink-0 p-3 bg-white border-end shadow-sm sidebar" id="sidebar" style="width: 280px; min-height: 100vh;">
     <div class="sidebar-header d-flex justify-content-between align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none w-100">
         <a href="<?php echo url('dashboard'); ?>" class="logo d-flex align-items-center gap-2 text-decoration-none">
-            <i class="fas fa-wallet fs-4 text-primary"></i>
-            <span class="fs-4 fw-bold text-primary">FinanzApp</span>
+            <i class="fas fa-piggy-bank fs-4 text-primary"></i>
+            <span class="fs-4 fw-bold text-primary">AlcanciaApp</span>
         </a>
         <button class="btn btn-sm btn-outline-secondary d-md-none mobile-toggle" id="mobileToggle">
             <i class="fas fa-times"></i>
@@ -28,46 +21,34 @@ if (isset($sidebarUser) && isset($sidebarUser['id'])) {
     <nav class="sidebar-nav flex-grow-1 overflow-auto custom-scrollbar">
         <ul class="nav nav-pills flex-column mb-auto">
             <li class="nav-item mt-2">
-                <span class="text-uppercase small fw-bold text-muted ps-3" style="font-size: 0.75rem;">General</span>
+                <span class="text-uppercase small fw-bold text-muted ps-3" style="font-size: 0.75rem;">Principal</span>
             </li>
             <li class="nav-item">
                 <a href="<?php echo url('dashboard'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'dashboard') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>" aria-current="page">
-                    <i class="fas fa-home me-2 text-center" style="width: 20px;"></i>
-                    Inicio
+                    <i class="fas fa-chart-line me-2 text-center" style="width: 20px;"></i>
+                    Resumen
                 </a>
             </li>
             <li class="nav-item">
-                <a href="<?php echo url('transacciones'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'transaccion') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
-                    <i class="fas fa-money-bill-transfer me-2 text-center" style="width: 20px;"></i>
-                    Transacciones
+                <a href="<?php echo url('perfil'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'perfil') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
+                    <i class="fas fa-user me-2 text-center" style="width: 20px;"></i>
+                    Mi Perfil
                 </a>
             </li>
-            
+
             <li class="nav-item mt-3">
-                <span class="text-uppercase small fw-bold text-muted ps-3" style="font-size: 0.75rem;">Finanzas</span>
+                <span class="text-uppercase small fw-bold text-muted ps-3" style="font-size: 0.75rem;">Alcancia IoT</span>
             </li>
             <li class="nav-item">
-                <a href="<?php echo url('cuentas'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'cuenta') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
-                    <i class="fas fa-university me-2 text-center" style="width: 20px;"></i>
-                    Cuentas
+                <a href="<?php echo url('api/alcancia/status'); ?>" class="nav-link text-dark">
+                    <i class="fas fa-server me-2 text-center" style="width: 20px;"></i>
+                    Estado API
                 </a>
             </li>
             <li class="nav-item">
-                <a href="<?php echo url('tarjetas'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'tarjeta') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
-                    <i class="fas fa-credit-card me-2 text-center" style="width: 20px;"></i>
-                    Tarjetas
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="<?php echo url('recurrentes'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'recurrente') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
-                    <i class="fas fa-calendar-check me-2 text-center" style="width: 20px;"></i>
-                    Suscripciones
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="<?php echo url('metas'); ?>" class="nav-link text-dark <?php echo strpos($currentPath, 'meta') !== false ? 'active bg-primary text-white' : 'hover-primary'; ?>">
-                    <i class="fas fa-piggy-bank me-2 text-center" style="width: 20px;"></i>
-                    Metas
+                <a href="<?php echo url('logout'); ?>" class="nav-link text-danger hover-primary">
+                    <i class="fas fa-arrow-right-from-bracket me-2 text-center" style="width: 20px;"></i>
+                    Cerrar Sesion
                 </a>
             </li>
         </ul>
@@ -84,20 +65,15 @@ if (isset($sidebarUser) && isset($sidebarUser['id'])) {
             <div class="d-none d-md-block">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="<?php echo url('dashboard'); ?>" class="text-decoration-none text-muted">Finanzas</a></li>
+                        <li class="breadcrumb-item"><a href="<?php echo url('dashboard'); ?>" class="text-decoration-none text-muted">Alcancia</a></li>
                         <li class="breadcrumb-item active" aria-current="page">
                             <?php
                             $pageTitles = [
-                                'dashboard' => 'Inicio',
-                                'transacciones' => 'Transacciones',
-                                'cuentas' => 'Cuentas',
-                                'tarjetas' => 'Tarjetas',
-                                'recurrentes' => 'Suscripciones',
-                                'metas' => 'Metas de Ahorro',
+                                'dashboard' => 'Resumen',
                                 'perfil' => 'Mi Perfil',
-                                'alertas' => 'Alertas'
+                                'api' => 'API'
                             ];
-                            $currentPage = 'Inicio';
+                            $currentPage = 'Resumen';
                             foreach ($pageTitles as $key => $title) {
                                 if (strpos($currentPath, $key) !== false) {
                                     $currentPage = $title;
@@ -202,7 +178,7 @@ if (isset($sidebarUser) && isset($sidebarUser['id'])) {
                             <div>
                                 <div class="fw-medium"><?php echo htmlspecialchars($sidebarUser['nombre'] ?? 'Usuario'); ?></div>
                                 <div class="text-muted small"><?php echo htmlspecialchars($sidebarUser['email'] ?? ''); ?></div>
-                                <div class="badge bg-success bg-opacity-10 text-success mt-1">Plan Premium</div>
+                                <div class="badge bg-success bg-opacity-10 text-success mt-1">Usuario</div>
                             </div>
                         </div>
                     </li>
@@ -211,14 +187,6 @@ if (isset($sidebarUser) && isset($sidebarUser['id'])) {
                         <i class="fas fa-user me-3 text-muted" style="width: 16px;"></i>
                         Mi Perfil
                     </a></li>
-                    <li><a class="dropdown-item d-flex align-items-center py-2" href="<?php echo url('alertas'); ?>">
-                        <i class="fas fa-bell me-3 text-muted" style="width: 16px;"></i>
-                        Alertas
-                        <?php if(isset($alertasNoLeidas) && $alertasNoLeidas > 0): ?>
-                            <span class="badge bg-danger rounded-pill ms-auto"><?php echo $alertasNoLeidas; ?></span>
-                        <?php endif; ?>
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item d-flex align-items-center py-2 text-danger" href="<?php echo url('logout'); ?>">
                         <i class="fas fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>
                         Cerrar Sesión
