@@ -1,53 +1,54 @@
-<?php include __DIR__ . '/includes/header.php'; ?>
-<?php include __DIR__ . '/includes/sidebar.php'; ?>
-
-<?php 
-$hora = date('G');
-$saludo = 'Bienvenido';
-if ($hora >= 5 && $hora < 12) $saludo = 'Buenos días';
-else if ($hora >= 12 && $hora < 19) $saludo = 'Buenas tardes';
-else $saludo = 'Buenas noches';
-?>
-
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
-    <div>
-        <?php $nombreUsuario = $user['nombre'] ?? 'Usuario'; ?>
-        <h1 class="h2"><?php echo $saludo; ?>, <?php echo htmlspecialchars(explode(' ', $nombreUsuario)[0]); ?> 👋</h1>
-        <p class="text-muted">Aquí tienes el resumen de tu actividad financiera.</p>
+<!-- src/app/Views/dashboard.php -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Medidor de Energía</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h1>Dashboard de Energía</h1>
+    <div id="data">
+        <p>Voltaje: <?php echo $data['voltage'] ?? 'N/A'; ?> V</p>
+        <p>Corriente: <?php echo $data['current'] ?? 'N/A'; ?> A</p>
+        <p>Potencia: <?php echo $data['power'] ?? 'N/A'; ?> W</p>
+        <p>Energía: <?php echo $data['energy'] ?? 'N/A'; ?> kWh</p>
+        <p>Costo: $<?php echo $data['cost'] ? number_format($data['cost'], 2) : 'N/A'; ?></p>
     </div>
-    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
-        <a href="transaccion/crear?tipo=ingreso" class="btn btn-success shadow-sm">
-            <i class="fas fa-plus me-1"></i> Ingreso
-        </a>
-        <a href="transaccion/crear?tipo=gasto" class="btn btn-danger shadow-sm">
-            <i class="fas fa-minus me-1"></i> Gasto
-        </a>
-    </div>
-</div>
+    <button id="relayOn">Encender Relay</button>
+    <button id="relayOff">Apagar Relay</button>
+    <a href="/tariffs">Configurar Tarifas</a>
+    <a href="/reports">Ver Reportes</a>
+    <a href="/perfil">Mi Perfil</a>
+    <a href="/logout">Cerrar Sesión</a>
+    <script>
+        function updateData() {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('data').innerHTML = `
+                        <p>Voltaje: ${data.voltage} V</p>
+                        <p>Corriente: ${data.current} A</p>
+                        <p>Potencia: ${data.power} W</p>
+                        <p>Energía: ${data.energy} kWh</p>
+                        <p>Costo: $${data.cost ? data.cost.toFixed(2) : 'N/A'}</p>
+                    `;
+                })
+                .catch(error => console.error('Error:', error));
+        }
 
-<!-- =======================
-     RESUMEN: STATS CARDS
-     ======================= -->
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
-    <!-- Balance -->
-    <div class="col">
-        <div class="card h-100 border-start border-4 shadow-sm <?php echo $stats['balance_mes'] >= 0 ? 'border-success' : 'border-danger'; ?>">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Balance del Mes</h6>
-                    <h3 class="mb-0 fw-bold"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($stats['balance_mes'], 0, ',', '.'); ?></h3>
-                </div>
-                <div class="fs-1 <?php echo $stats['balance_mes'] >= 0 ? 'text-success' : 'text-danger'; ?> opacity-25">
-                    <i class="fas fa-wallet"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Ingresos -->
-    <div class="col">
-        <div class="card h-100 border-start border-4 border-success shadow-sm">
-            <div class="card-body d-flex align-items-center justify-content-between">
+        document.getElementById('relayOn').addEventListener('click', () => {
+            fetch('/api/relay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'on' }) });
+        });
+
+        document.getElementById('relayOff').addEventListener('click', () => {
+            fetch('/api/relay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'off' }) });
+        });
+
+        setInterval(updateData, 5000);
+    </script>
+</body>
+</html>
                 <div>
                     <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Ingresos Mensuales</h6>
                     <h3 class="mb-0 fw-bold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($stats['ingresos_mes'], 0, ',', '.'); ?></h3>

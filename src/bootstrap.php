@@ -9,8 +9,8 @@ if (file_exists('/var/www/html/src')) {
 } else {
     // Entorno desarrollo local
     define('BASE_PATH', dirname(__FILE__));
-    define('BASE_URL', '/Finanzas/src/public');
-    define('ASSETS_URL', '/Finanzas/src/public/assets');
+    define('BASE_URL', '/proyecto_energia/src/public');
+    define('ASSETS_URL', '/proyecto_energia/src/public/assets');
 }
 
 define('CONFIG_PATH', BASE_PATH . '/config');
@@ -19,8 +19,11 @@ define('VIEWS_PATH', APP_PATH . '/Views');
 define('PUBLIC_PATH', BASE_PATH . '/public');
 
 // Nombre de la aplicación
-define('APP_NAME', 'FinanzApp');
+define('APP_NAME', 'MedidorEnergia');
 define('APP_VERSION', '1.0');
 
 // Incluir funciones helper globales
 require_once BASE_PATH . '/functions.php';
+
+// Incluir constantes
+require_once CONFIG_PATH . '/constants.php';

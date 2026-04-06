@@ -10,7 +10,7 @@ class Database {
         if (!self::$connection) {
             $host = $_ENV['DB_HOST'] ?? 'localhost';
             $port = $_ENV['DB_PORT'] ?? '3306';
-            $db_name = $_ENV['DB_NAME'] ?? 'finanzapp_db';
+            $db_name = $_ENV['DB_NAME'] ?? 'energia_db';
             $username = $_ENV['DB_USER'] ?? 'root';
             $password = $_ENV['DB_PASS'] ?? '';
 

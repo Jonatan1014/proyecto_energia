@@ -11,7 +11,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Eliminar el prefijo base si es necesario (XAMPP local)
-$base = '/Finanzas/src/public';
+$base = '/proyecto_energia/src/public';
 if (strpos($uri, $base) === 0) {
     $uri = substr($uri, strlen($base));
 }
