@@ -1,15 +1,15 @@
 -- =====================================================
 -- SCHEMA: Monitor de Energía IoT
--- Base de datos: energia_db
+-- Base de datos: energia_db_monitoreo
 -- =====================================================
 
 
-drop database if exists energia_db;
-CREATE DATABASE IF NOT EXISTS energia_db
+drop database if exists energia_db_monitoreo;
+CREATE DATABASE IF NOT EXISTS energia_db_monitoreo
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-USE energia_db;
+USE energia_db_monitoreo;
 
 -- =====================================================
 -- TABLA: usuarios

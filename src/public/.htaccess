@@ -1,8 +1,6 @@
 RewriteEngine On
 
-# Permitir acceso directo a archivos en la carpeta api (facturas, etc)
-RewriteCond %{REQUEST_URI} ^/api/ [NC]
-RewriteRule ^ - [L]
+
 
 # Redirigir todo lo demás al router si no es archivo o directorio
 RewriteCond %{REQUEST_FILENAME} !-f

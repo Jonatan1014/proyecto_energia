@@ -29,7 +29,7 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
             <?php if ($device['online'] ?? false): ?>
                 <strong><?php echo htmlspecialchars($device['device_name'] ?? 'PZEM-004T'); ?></strong> — Conectado
             <?php else: ?>
-                <strong>Dispositivo Desconectado</strong> — <?php echo $device['last_seen'] ? 'Última vez: ' . time_ago($device['last_seen']) : 'Nunca conectado'; ?>
+                <strong>Dispositivo Desconectado</strong> — <?php echo ($device['last_seen'] ?? false) ? 'Última vez: ' . time_ago($device['last_seen']) : 'Nunca conectado'; ?>
             <?php endif; ?>
         </span>
     </div>
