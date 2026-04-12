@@ -6,25 +6,35 @@
 #include <PZEM004Tv30.h>
 
 // ============================================================
-// PINOUT PARA PZEM-004T-100A-D-P (v1.0) + ESP32 WROOM 32
+//  CONEXIONES PZEM-004T-100A-D-P (v1.0) con ESP32
 // ============================================================
-// PZEM VCC  -> 5V del ESP32 (VIN)
-// PZEM GND  -> GND del ESP32
-// PZEM RX   -> GPIO 16 (TX2 del ESP32)
-// PZEM TX   -> GPIO 17 (RX2 del ESP32)
-// PZEM CF   -> GPIO 4 del ESP32
-// ============================================================
-// OLED (I2C):
-//   VCC -> 3.3V | GND -> GND | SCL -> GPIO 22 | SDA -> GPIO 21
-// ============================================================
-// Relay:
-//   VCC -> 5V | GND -> GND | IN -> GPIO 5
+//
+//  ┌─────────────────────────────────────────────────────────┐
+//  │  PZEM-004T v1.0          ESP32 WROOM 32                │
+//  │  ──────────────          ──────────────                 │
+//  │  VCC  (pin 5V)  ──────>  VIN ó 5V                      │
+//  │  GND            ──────>  GND                            │
+//  │  TX   (dato OUT)──────>  GPIO 16 (RX2) ← ESP32 recibe  │
+//  │  RX   (dato IN) <──────  GPIO 17 (TX2) → ESP32 envía   │
+//  │  CF   (pulsos)  ──────>  GPIO 4                         │
+//  └─────────────────────────────────────────────────────────┘
+//
+//  ⚠️ IMPORTANTE: Sigue las etiquetas del BOARD (placa):
+//     - En la placa ESP32, GPIO 16 dice "RX2" → ahí va el TX del PZEM
+//     - En la placa ESP32, GPIO 17 dice "TX2" → ahí va el RX del PZEM
+//
+//  ⚠️ El PZEM necesita AMBAS cosas para funcionar:
+//     1. Alimentación 5V en VCC (NO 3.3V)
+//     2. Lado AC conectado a 110V/220V (sin AC, el módulo no enciende)
+//
 // ============================================================
 
-// --- PINES PZEM-004T v1.0 ---
-#define PZEM_RX_PIN 17   // RX del ESP32 (conecta a TX del PZEM)
-#define PZEM_TX_PIN 16   // TX del ESP32 (conecta a RX del PZEM)
-#define CF_PIN      4    // Pin CF (salida de pulsos de energía del PZEM)
+// --- PINES PZEM (USANDO PINES DEFAULT de Serial2) ---
+// GPIO 16 = RX2 del ESP32 (aquí RECIBE datos del TX del PZEM)
+// GPIO 17 = TX2 del ESP32 (aquí ENVÍA datos al RX del PZEM)
+#define PZEM_ESP_RX  16   // ESP32 recibe aquí ← conecta TX del PZEM
+#define PZEM_ESP_TX  17   // ESP32 transmite aquí → conecta RX del PZEM
+#define CF_PIN        4   // Pin CF del PZEM (pulsos de energía)
 
 // --- PANTALLA OLED (I2C) ---
 #define SCREEN_WIDTH   128
@@ -33,19 +43,24 @@
 #define SCREEN_ADDRESS 0x3C
 
 // --- RELAY ---
-#define RELAY_PIN 5  // Cambiado a GPIO 5 para liberar GPIO 4 para CF
+#define RELAY_PIN 5
 
 // --- CONFIGURACIÓN DE RED ---
 const char* ssid       = "Internet";
 const char* password   = "balon100";
-const char* webhookUrl = "https://n8n.systemautomatic.xyz/webhook/energia";
+
+// --- ENDPOINTS LOCALES (CAMBIAR IP Y API KEY) ---
+// Obtener la IP de la máquina donde instalaste XAMPP si usas red local
+const char* apiKey        = "TU_API_KEY_AQUI"; // Sacar del dashboard
+const char* webhookUrl    = "http://TU_IP_LOCAL/proyecto_energia/src/public/api/save";
+const char* relayCheckUrl = "http://TU_IP_LOCAL/proyecto_energia/src/public/api/relay-status";
 
 // --- INTERVALOS ---
 unsigned long previousMillisWebhook = 0;
-const long intervalWebhook = 5000;  // 5 segundos
+const long intervalWebhook = 5000;
 
 unsigned long previousMillisPZEM = 0;
-const long intervalPZEM = 2000;     // 2 segundos
+const long intervalPZEM = 2000;
 
 // --- VARIABLES DE MEDICIÓN ---
 float last_voltage   = 0.0;
@@ -56,29 +71,27 @@ float last_frequency = 0.0;
 float last_pf        = 0.0;
 
 // --- PULSOS CF ---
-volatile unsigned long pulseCount    = 0;
-unsigned long lastPulseTime          = 0;
-unsigned long lastPulseCountDisplay  = 0;
+volatile unsigned long pulseCount = 0;
+unsigned long lastPulseTime       = 0;
 
 // --- INSTANCIAS ---
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+PZEM004Tv30* pzem = nullptr;
 
-// Usar HardwareSerial 2 para la comunicación con el PZEM
-HardwareSerial PZEMSerial(2);
-
-// Crear instancia PZEM004Tv30 usando la librería oficial
-// La librería funciona tanto con la V3.0 como con la nueva v1.0
-PZEM004Tv30 pzem(PZEMSerial, PZEM_RX_PIN, PZEM_TX_PIN);
+// Pines UART confirmados tras auto-detección
+uint8_t confirmedRX = PZEM_ESP_RX;
+uint8_t confirmedTX = PZEM_ESP_TX;
 
 // --- PROTOTIPOS ---
 void mostrarMensaje(String linea1, String linea2);
 void actualizarPantalla(float v, float c, float p, float e);
 void enviarDatosWebhook(float v, float c, float p, float e);
+void consultarEstadoRelay();
 void IRAM_ATTR onPulse();
+bool testModbusRaw(uint8_t rxPin, uint8_t txPin, const char* label);
 
 // ============================================================
-// ISR: Interrupción para contar pulsos del pin CF
-// Cada pulso representa una cantidad de energía consumida.
+// ISR: Interrupción para pulsos CF
 // ============================================================
 void IRAM_ATTR onPulse() {
   pulseCount++;
@@ -86,39 +99,189 @@ void IRAM_ATTR onPulse() {
 }
 
 // ============================================================
+// TEST MODBUS CRUDO: prueba comunicación en una config de pines
+// ============================================================
+bool testModbusRaw(uint8_t rxPin, uint8_t txPin, const char* label) {
+  Serial.print("  Probando ");
+  Serial.print(label);
+  Serial.print(" (ESP32 RX=GPIO");
+  Serial.print(rxPin);
+  Serial.print(", TX=GPIO");
+  Serial.print(txPin);
+  Serial.print(")... ");
+
+  // Re-inicializar Serial2 con estos pines
+  Serial2.end();
+  delay(50);
+  Serial2.begin(9600, SERIAL_8N1, rxPin, txPin);
+  delay(100);
+
+  // Limpiar buffer
+  while (Serial2.available()) { Serial2.read(); }
+
+  // Probar 3 direcciones Modbus comunes
+  // Dir 0x01 (común en V3.0)
+  byte cmd01[] = {0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};
+  // Dir 0xF8 (broadcast, default de fábrica)
+  byte cmdF8[] = {0xF8, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x64, 0x64};
+
+  // Intentar dirección 0x01
+  Serial2.write(cmd01, sizeof(cmd01));
+  Serial2.flush();
+  delay(300);
+
+  if (Serial2.available() >= 5) {
+    Serial.print("¡RESPUESTA en addr 0x01! Bytes: ");
+    while (Serial2.available()) {
+      byte b = Serial2.read();
+      if (b < 0x10) Serial.print("0");
+      Serial.print(b, HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+    return true;
+  }
+
+  // Limpiar e intentar dirección 0xF8
+  while (Serial2.available()) { Serial2.read(); }
+  Serial2.write(cmdF8, sizeof(cmdF8));
+  Serial2.flush();
+  delay(300);
+
+  if (Serial2.available() >= 5) {
+    Serial.print("¡RESPUESTA en addr 0xF8! Bytes: ");
+    while (Serial2.available()) {
+      byte b = Serial2.read();
+      if (b < 0x10) Serial.print("0");
+      Serial.print(b, HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+    return true;
+  }
+
+  Serial.println("Sin respuesta.");
+  return false;
+}
+
+// ============================================================
 // SETUP
 // ============================================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("=========================================");
+  delay(1000);  // Esperar a que el ESP32 se estabilice completamente
+
+  Serial.println("\n=========================================");
   Serial.println("Monitor de Energía - PZEM-004T v1.0");
   Serial.println("=========================================");
 
-  // Inicializar comunicación serial con PZEM (la librería lo maneja,
-  // pero aseguramos que el HardwareSerial esté configurado)
-  PZEMSerial.begin(9600, SERIAL_8N1, PZEM_RX_PIN, PZEM_TX_PIN);
-
-  // Configurar pin CF como entrada con interrupción
-  pinMode(CF_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(CF_PIN), onPulse, RISING);
-
-  // Inicializar Relay (apagado por defecto — HIGH = relé activado si módulo activo bajo)
+  // Inicializar Relay
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, HIGH);
 
+  // Inicializar pin CF
+  pinMode(CF_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(CF_PIN), onPulse, RISING);
+
   // Inicializar Pantalla OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("Error: No se detectó pantalla OLED. Revisa I2C."));
-    for (;;);  // Bucle infinito si falla
+    Serial.println(F("Error: OLED no detectado."));
+    for (;;);
   }
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
   display.display();
 
-  mostrarMensaje("Iniciando Monitor", "PZEM-004T v1.0");
-  delay(1500);
+  mostrarMensaje("Buscando PZEM...", "Auto-detectando...");
 
-  // Conectar a WiFi
+  // ============================================================
+  // AUTO-DETECCIÓN DE PINES TX/RX
+  // Prueba ambas configuraciones posibles para detectar
+  // automáticamente cómo están conectados los cables.
+  // ============================================================
+  Serial.println("\n--- Auto-detección de conexión UART ---");
+  Serial.println("Probando comunicación con el PZEM...\n");
+
+  bool found = false;
+
+  // Config A: Pines por DEFECTO de Serial2 (más común)
+  //   ESP32 RX en GPIO 16 ← TX del PZEM
+  //   ESP32 TX en GPIO 17 → RX del PZEM
+  if (testModbusRaw(16, 17, "Config A (RX=16, TX=17)")) {
+    confirmedRX = 16;
+    confirmedTX = 17;
+    found = true;
+    Serial.println("  >>> Config A funciona! <<<\n");
+  }
+
+  // Config B: Pines INVERTIDOS (según algunas guías)
+  //   ESP32 RX en GPIO 17 ← TX del PZEM
+  //   ESP32 TX en GPIO 16 → RX del PZEM
+  if (!found && testModbusRaw(17, 16, "Config B (RX=17, TX=16)")) {
+    confirmedRX = 17;
+    confirmedTX = 16;
+    found = true;
+    Serial.println("  >>> Config B funciona! <<<\n");
+  }
+
+  if (!found) {
+    Serial.println("\n╔══════════════════════════════════════════════╗");
+    Serial.println("║  PZEM NO DETECTADO EN NINGUNA CONFIGURACIÓN ║");
+    Serial.println("╠══════════════════════════════════════════════╣");
+    Serial.println("║  Revisa lo siguiente:                       ║");
+    Serial.println("║                                             ║");
+    Serial.println("║  1. ALIMENTACIÓN 5V:                        ║");
+    Serial.println("║     - VCC del PZEM → pin VIN (5V) del ESP32 ║");
+    Serial.println("║     - NO usar 3.3V, el UART no funciona     ║");
+    Serial.println("║                                             ║");
+    Serial.println("║  2. TIERRA COMÚN:                           ║");
+    Serial.println("║     - GND del PZEM → GND del ESP32          ║");
+    Serial.println("║                                             ║");
+    Serial.println("║  3. CABLES DE DATOS:                        ║");
+    Serial.println("║     - TX del PZEM → GPIO 16 del ESP32       ║");
+    Serial.println("║     - RX del PZEM → GPIO 17 del ESP32       ║");
+    Serial.println("║                                             ║");
+    Serial.println("║  4. CORRIENTE ALTERNA:                      ║");
+    Serial.println("║     - Los terminales AC del PZEM DEBEN      ║");
+    Serial.println("║       estar conectados a 110V/220V.         ║");
+    Serial.println("║     - Sin AC el módulo NO enciende.         ║");
+    Serial.println("║                                             ║");
+    Serial.println("║  5. BOBINA CT:                              ║");
+    Serial.println("║     - Debe pasar la línea viva por el       ║");
+    Serial.println("║       agujero de la bobina toroidal.        ║");
+    Serial.println("╚══════════════════════════════════════════════╝");
+
+    mostrarMensaje("PZEM NO ENCONTRADO", "Revisa cableado!");
+    Serial.println("\nContinuando en modo degradado (reintentará en loop)...\n");
+  }
+
+  // Crear el objeto PZEM con los pines confirmados (o default si no detectó)
+  Serial.print("Inicializando PZEM con RX=GPIO");
+  Serial.print(confirmedRX);
+  Serial.print(", TX=GPIO");
+  Serial.println(confirmedTX);
+
+  Serial2.end();
+  delay(50);
+  pzem = new PZEM004Tv30(Serial2, confirmedRX, confirmedTX);
+  delay(500);
+
+  Serial.print("Dirección PZEM: 0x");
+  Serial.println(pzem->getAddress(), HEX);
+
+  // Primera lectura de prueba
+  float testV = pzem->voltage();
+  if (!isnan(testV)) {
+    Serial.print("✓ Lectura OK — Voltaje: ");
+    Serial.print(testV, 1);
+    Serial.println(" V");
+    mostrarMensaje("PZEM Conectado!", String(testV, 1) + " V");
+  } else {
+    Serial.println("✗ Primera lectura NaN");
+  }
+
+  // Conectar WiFi
+  delay(1000);
   mostrarMensaje("Conectando WiFi...", String(ssid));
   WiFi.begin(ssid, password);
 
@@ -130,15 +293,15 @@ void setup() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi Conectado - IP: " + WiFi.localIP().toString());
+    Serial.println("\nWiFi Conectado — IP: " + WiFi.localIP().toString());
     mostrarMensaje("WiFi Conectado", WiFi.localIP().toString());
   } else {
-    Serial.println("\nError: No se pudo conectar a WiFi");
+    Serial.println("\nError WiFi — Modo Offline");
     mostrarMensaje("Error WiFi", "Modo Offline");
   }
-  delay(2000);
+  delay(1500);
 
-  Serial.println("Sistema listo. Leyendo PZEM...");
+  Serial.println("\nSistema listo. Leyendo PZEM cada 2 segundos...\n");
 }
 
 // ============================================================
@@ -148,59 +311,59 @@ void loop() {
   unsigned long currentMillis = millis();
 
   // -------------------------------------------------------
-  // 1. LEER DATOS DEL PZEM-004T USANDO LA LIBRERÍA OFICIAL
+  // 1. LEER DATOS DEL PZEM-004T
   // -------------------------------------------------------
   if (currentMillis - previousMillisPZEM >= intervalPZEM) {
     previousMillisPZEM = currentMillis;
 
-    // La librería PZEM004Tv30 se encarga de toda la comunicación
-    // Modbus RTU internamente (trama, CRC, parsing).
-    float voltage   = pzem.voltage();
-    float current   = pzem.current();
-    float power     = pzem.power();
-    float energy    = pzem.energy();
-    float frequency = pzem.frequency();
-    float pf        = pzem.pf();
-
-    // Verificar que las lecturas sean válidas (no NaN)
-    if (!isnan(voltage) && !isnan(current) && !isnan(power)) {
-      last_voltage   = voltage;
-      last_current   = current;
-      last_power     = power;
-      last_energy    = energy;
-      last_frequency = frequency;
-      last_pf        = pf;
-
-      // Imprimir al monitor serie
-      Serial.println("--- Lectura PZEM-004T v1.0 ---");
-      Serial.print("Voltaje:    "); Serial.print(last_voltage, 1);  Serial.println(" V");
-      Serial.print("Corriente:  "); Serial.print(last_current, 3);  Serial.println(" A");
-      Serial.print("Potencia:   "); Serial.print(last_power, 1);    Serial.println(" W");
-      Serial.print("Energía:    "); Serial.print(last_energy, 3);   Serial.println(" kWh");
-      Serial.print("Frecuencia: "); Serial.print(last_frequency, 1);Serial.println(" Hz");
-      Serial.print("Factor PF:  "); Serial.println(last_pf, 2);
-      Serial.print("Pulsos CF:  "); Serial.println(pulseCount);
-      Serial.println("-------------------------------");
-
-    } else {
-      Serial.println("Error: Lectura PZEM inválida (NaN). Verifica conexiones.");
-      Serial.println("  -> VCC=5V, GND, RX->GPIO16, TX->GPIO17");
+    if (pzem == nullptr) {
+      Serial.println("Error: PZEM no inicializado.");
+      return;
     }
 
-    // Actualizar pantalla siempre
+    float voltage   = pzem->voltage();
+    float current   = pzem->current();
+    float power     = pzem->power();
+    float energy    = pzem->energy();
+    float frequency = pzem->frequency();
+    float pf        = pzem->pf();
+
+    if (!isnan(voltage)) {
+      last_voltage   = voltage;
+      last_current   = isnan(current)   ? 0.0 : current;
+      last_power     = isnan(power)     ? 0.0 : power;
+      last_energy    = isnan(energy)    ? 0.0 : energy;
+      last_frequency = isnan(frequency) ? 0.0 : frequency;
+      last_pf        = isnan(pf)        ? 0.0 : pf;
+
+      Serial.println("--- Lectura PZEM OK ---");
+      Serial.print("Voltaje:    "); Serial.print(last_voltage, 1);   Serial.println(" V");
+      Serial.print("Corriente:  "); Serial.print(last_current, 3);   Serial.println(" A");
+      Serial.print("Potencia:   "); Serial.print(last_power, 1);     Serial.println(" W");
+      Serial.print("Energía:    "); Serial.print(last_energy, 3);    Serial.println(" kWh");
+      Serial.print("Frecuencia: "); Serial.print(last_frequency, 1); Serial.println(" Hz");
+      Serial.print("Factor PF:  "); Serial.println(last_pf, 2);
+      Serial.print("Pulsos CF:  "); Serial.println(pulseCount);
+      Serial.println("------------------------");
+
+    } else {
+      Serial.println("Lectura NaN — PZEM sin respuesta.");
+    }
+
     actualizarPantalla(last_voltage, last_current, last_power, last_energy);
   }
 
   // -------------------------------------------------------
-  // 2. ENVIAR DATOS POR WEBHOOK
+  // 2. ENVIAR DATOS POR WEBHOOK Y CONSULTAR RELAY
   // -------------------------------------------------------
   if (currentMillis - previousMillisWebhook >= intervalWebhook) {
     previousMillisWebhook = currentMillis;
 
     if (WiFi.status() == WL_CONNECTED) {
       enviarDatosWebhook(last_voltage, last_current, last_power, last_energy);
+      consultarEstadoRelay(); // Comprobar estado del relay después de enviar datos
     } else {
-      Serial.println("WiFi desconectado. Intentando reconexión...");
+      Serial.println("WiFi desconectado. Reconectando...");
       WiFi.reconnect();
     }
   }
@@ -210,13 +373,33 @@ void loop() {
 // FUNCIONES AUXILIARES
 // ============================================================
 
-/**
- * Actualiza la pantalla OLED con los valores medidos.
- */
+void consultarEstadoRelay() {
+  HTTPClient http;
+
+  Serial.println("Consultando estado del Relay...");
+  http.begin(relayCheckUrl);
+  http.addHeader("X-API-KEY", apiKey);
+
+  int httpResponseCode = http.GET();
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    // Esperamos un json: {"status":"success","relay":"ON"}
+    if (response.indexOf("\"relay\":\"ON\"") > 0) {
+      digitalWrite(RELAY_PIN, HIGH);
+      Serial.println("Relay establecido a: ON (HIGH)");
+    } else if (response.indexOf("\"relay\":\"OFF\"") > 0) {
+      digitalWrite(RELAY_PIN, LOW);
+      Serial.println("Relay establecido a: OFF (LOW)");
+    }
+  } else {
+    Serial.println("Error al consultar relay: " + String(httpResponseCode));
+  }
+  http.end();
+}
+
 void actualizarPantalla(float v, float c, float p, float e) {
   display.clearDisplay();
 
-  // Barra de estado superior
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("WiFi:");
@@ -228,7 +411,6 @@ void actualizarPantalla(float v, float c, float p, float e) {
 
   display.drawLine(0, 10, SCREEN_WIDTH, 10, SSD1306_WHITE);
 
-  // Valores de medición
   display.setCursor(0, 14);
   display.print("Vol: ");
   display.print(v, 1);
@@ -245,14 +427,12 @@ void actualizarPantalla(float v, float c, float p, float e) {
   display.print("Hz PF:");
   display.print(last_pf, 2);
 
-  // Potencia en tamaño grande
   display.setCursor(0, 46);
   display.setTextSize(2);
   display.print(p, 0);
   display.setTextSize(1);
   display.print(" W");
 
-  // Energía en la esquina inferior derecha
   display.setCursor(80, 56);
   display.print(e, 1);
   display.print("kWh");
@@ -260,17 +440,14 @@ void actualizarPantalla(float v, float c, float p, float e) {
   display.display();
 }
 
-/**
- * Envía los datos de medición al webhook configurado.
- */
 void enviarDatosWebhook(float v, float c, float p, float e) {
   HTTPClient http;
 
   Serial.println("Enviando datos al Webhook...");
   http.begin(webhookUrl);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-KEY", apiKey); // <-- Autenticación agregada
 
-  // Construir payload JSON con todos los valores
   String payload = "{";
   payload += "\"voltaje\":" + String(v, 1) + ",";
   payload += "\"corriente\":" + String(c, 3) + ",";
@@ -291,9 +468,6 @@ void enviarDatosWebhook(float v, float c, float p, float e) {
   http.end();
 }
 
-/**
- * Muestra un mensaje de dos líneas centrado en la pantalla OLED.
- */
 void mostrarMensaje(String linea1, String linea2) {
   display.clearDisplay();
   display.setTextSize(1);

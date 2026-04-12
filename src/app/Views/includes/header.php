@@ -9,27 +9,24 @@ if (session_status() === PHP_SESSION_NONE) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo APP_NAME; ?> - Gestor de Finanzas</title>
+    <title><?php echo $pageTitle ?? 'Monitor de Energía'; ?> - EnergyMonitor</title>
     
     <!-- Meta SEO -->
-    <meta name="description" content="Gestor de finanzas personales premium. Controla tus gastos, metas de ahorro y tarjetas de crédito.">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="Sistema de monitoreo de energía eléctrica en tiempo real. Controla tu consumo y costos con el PZEM-004T.">
+    <meta name="theme-color" content="#0f172a">
 
     <!-- Fuentes: Inter & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?php echo asset_url('css/app.css'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo asset_url('css/energy.css'); ?>?v=<?php echo time(); ?>">
 </head>
-<body class="app-body">
+<body class="energy-body">
     <?php include __DIR__ . '/alertEvent.php'; ?>
     
-    <div class="app-container d-flex vh-100 overflow-hidden">
+    <div class="app-wrapper">

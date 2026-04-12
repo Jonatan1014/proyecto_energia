@@ -3,32 +3,33 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Flash messages rendered on auth pages (dashboard uses its own)
+if (!empty($_SESSION['error']) && !isset($pageTitle)):
 ?>
-
-<div class="toast-container" id="toastContainer">
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="toast success show">
-            <div class="toast-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="toast-content">
-                <h4>¡Éxito!</h4>
-                <p><?php echo htmlspecialchars($_SESSION['success']); ?></p>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-            <div class="toast-progress"></div>
-        </div>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="toast error show">
-            <div class="toast-icon"><i class="fas fa-exclamation-circle"></i></div>
-            <div class="toast-content">
-                <h4>Error</h4>
-                <p><?php echo htmlspecialchars($_SESSION['error']); ?></p>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-            <div class="toast-progress"></div>
-        </div>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
+<div class="flash-alert flash-danger" id="flashAlert">
+    <i class="fas fa-exclamation-circle"></i>
+    <span><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+    <button onclick="this.parentElement.remove()" class="flash-close">&times;</button>
 </div>
+<?php endif; ?>
+
+<?php if (!empty($_SESSION['success']) && !isset($pageTitle)): ?>
+<div class="flash-alert flash-success" id="flashAlert">
+    <i class="fas fa-check-circle"></i>
+    <span><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+    <button onclick="this.parentElement.remove()" class="flash-close">&times;</button>
+</div>
+<?php endif; ?>
+
+<?php
+// Dashboard/settings flash messages (inside page-content)
+if (!empty($_SESSION['error']) && isset($pageTitle)):
+    $flashError = $_SESSION['error'];
+    unset($_SESSION['error']);
+endif;
+if (!empty($_SESSION['success']) && isset($pageTitle)):
+    $flashSuccess = $_SESSION['success'];
+    unset($_SESSION['success']);
+endif;
+?>

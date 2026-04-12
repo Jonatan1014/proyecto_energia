@@ -1,0 +1,8 @@
+.git
+.gitignore
+.DS_Store
+docker/
+arduino/
+README.md
+docker-compose.yml
+docker-compose copy.yml
