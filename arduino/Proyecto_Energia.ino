@@ -51,9 +51,9 @@ const char* password   = "balon100";
 
 // --- ENDPOINTS LOCALES (CAMBIAR IP Y API KEY) ---
 // Obtener la IP de la máquina donde instalaste XAMPP si usas red local
-const char* apiKey        = "TU_API_KEY_AQUI"; // Sacar del dashboard
-const char* webhookUrl    = "http://TU_IP_LOCAL/proyecto_energia/src/public/api/save";
-const char* relayCheckUrl = "http://TU_IP_LOCAL/proyecto_energia/src/public/api/relay-status";
+const char* apiKey        = "667f982a2c7ad0d77788f848d2a239df857ec9dfc7b29ac66c2ec94185872d2a"; // Sacar del dashboard
+const char* webhookUrl    = "https://energia.systemautomatic.xyz/proyecto_energia/src/public/api/save";
+const char* relayCheckUrl = "https://energia.systemautomatic.xyz/proyecto_energia/src/public/api/relay-status";
 
 // --- INTERVALOS ---
 unsigned long previousMillisWebhook = 0;

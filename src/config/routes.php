@@ -44,4 +44,5 @@ return [
     '/api/device-status'  => ['controller' => 'ApiController',  'action' => 'getDeviceStatus'],
     '/api/reports'        => ['controller' => 'ApiController',  'action' => 'getReports'],
     '/api/relay-status'   => ['controller' => 'ApiController',  'action' => 'getRelayConfig'],
+    '/api/relay/toggle'   => ['controller' => 'ApiController',  'action' => 'toggleRelay'],
 ];

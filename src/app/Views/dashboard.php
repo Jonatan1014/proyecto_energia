@@ -34,9 +34,14 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
         </span>
     </div>
     <div class="banner-right">
-        <span class="relay-badge <?php echo $relayStatus; ?>" id="relayBadge">
-            <i class="fas fa-power-off"></i> Relay: <?php echo $relayStatus; ?>
-        </span>
+        <div class="relay-toggle-container" title="Haz clic para cambiar el estado de la energía">
+            <span class="relay-label"><i class="fas fa-power-off"></i> Relay</span>
+            <label class="relay-switch">
+              <input type="checkbox" id="relaySwitchDashboard" <?php echo $relayStatus === 'ON' ? 'checked' : ''; ?>>
+              <span class="relay-slider round"></span>
+            </label>
+            <span id="relayStatusText" class="relay-status-text <?php echo $relayStatus; ?>"><?php echo $relayStatus; ?></span>
+        </div>
     </div>
 </div>
 
@@ -231,6 +236,31 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
         </div>
         <div class="chart-wrapper">
             <canvas id="dailyConsumptionChart"></canvas>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Modal Confirmacion Relay -->
+<div id="relayModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-icon"><i class="fas fa-exclamation-triangle warning-icon"></i></div>
+            <h3>Advertencia Crítica</h3>
+            <button class="modal-close" id="relayModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Estás a punto de <strong id="relayActionText">apagar</strong> el relay principal del dispositivo.</p>
+            <p class="text-danger" id="relayWarningMsg">¡Esto dejará sin energía a toda la casa de forma inmediata!</p>
+            
+            <div class="swipe-container" id="swipeContainer">
+                <div class="swipe-track">
+                    <span class="swipe-text">Desliza para confirmar</span>
+                </div>
+                <div class="swipe-button" id="swipeButton">
+                    <i class="fas fa-chevron-right"></i><i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
         </div>
     </div>
 </div>

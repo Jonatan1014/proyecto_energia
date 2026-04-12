@@ -217,4 +217,47 @@ class ApiController {
             echo json_encode(['status' => 'error', 'message' => 'API key inválida']);
         }
     }
+
+    /**
+     * POST /api/relay/toggle
+     * Cambiar el estado del relay (Requiere sesión de usuario)
+     */
+    public function toggleRelay() {
+        header('Content-Type: application/json');
+
+        if (!AuthService::isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
+            return;
+        }
+
+        $userId = AuthService::getUserId();
+        
+        $rawBody = file_get_contents('php://input');
+        $data = json_decode($rawBody, true) ?: $_POST;
+        
+        $state = strtoupper($data['state'] ?? '');
+        
+        if ($state !== 'ON' && $state !== 'OFF') {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Estado inválido']);
+            return;
+        }
+
+        $deviceConfig = new DeviceConfig();
+        $updated = $deviceConfig->updateRelayState($userId, $state);
+
+        if ($updated) {
+            echo json_encode(['status' => 'success', 'message' => "Relay configurado a $state"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el estado']);
+        }
+    }
 }
