@@ -7,127 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initDeviceStatus();
 
-    // Solo initCharts en la página del dashboard
+    // Only init charts and polling on dashboard
     if (document.getElementById('powerChart')) {
         initCharts();
         startPolling();
-        initRelayControl();
     }
 });
-
-/* =====================================================
-   RELAY CONTROL (SWIPE TO CONFIRM)
-   ===================================================== */
-function initRelayControl() {
-    const switchInput = document.getElementById('relaySwitchDashboard');
-    const modal = document.getElementById('relayModal');
-    if (!switchInput || !modal) return;
-    
-    const btnClose = document.getElementById('relayModalClose');
-    const swipeBtn = document.getElementById('swipeButton');
-    const swipeContainer = document.getElementById('swipeContainer');
-    const actionText = document.getElementById('relayActionText');
-    const warningMsg = document.getElementById('relayWarningMsg');
-    
-    let targetState = '';
-    
-    // Al intentar cambiar el switch, prevenir default y mostrar modal
-    switchInput.addEventListener('click', (e) => {
-        e.preventDefault(); 
-        targetState = switchInput.checked ? 'OFF' : 'ON';
-        
-        if (targetState === 'OFF') {
-            actionText.textContent = 'apagar';
-            warningMsg.textContent = '¡Esto dejará sin energía a toda la casa de forma inmediata!';
-            swipeBtn.classList.add('danger-mode');
-        } else {
-            actionText.textContent = 'encender';
-            warningMsg.textContent = 'Esto restaurará la energía de la casa normalmente.';
-            swipeBtn.classList.remove('danger-mode');
-        }
-        
-        modal.classList.add('active');
-        resetSwipe();
-    });
-    
-    // Cerrar modal
-    const closeModal = () => modal.classList.remove('active');
-    btnClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    
-    // Lógica Drag to Confirm
-    let isDragging = false;
-    let startX = 0;
-    
-    const onDragStart = (e) => {
-        isDragging = true;
-        startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-        swipeBtn.style.transition = 'none';
-    };
-    
-    const onDragMove = (e) => {
-        if (!isDragging) return;
-        const maxDrag = swipeContainer.offsetWidth - swipeBtn.offsetWidth - 8; 
-        const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-        let walk = pageX - startX;
-        
-        if (walk < 0) walk = 0;
-        if (walk > maxDrag) walk = maxDrag;
-        
-        swipeBtn.style.transform = `translateX(${walk}px)`;
-        
-        if (walk >= maxDrag * 0.95) {
-            isDragging = false;
-            executeRelayToggle(targetState);
-        }
-    };
-    
-    const onDragEnd = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        resetSwipe();
-    };
-    
-    function resetSwipe() {
-        swipeBtn.style.transition = 'transform 0.3s';
-        swipeBtn.style.transform = 'translateX(0)';
-    }
-    
-    function executeRelayToggle(state) {
-        const baseUrl = window.energyData?.baseUrl || '';
-        fetch(`${baseUrl}/api/relay/toggle`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ state: state })
-        })
-        .then(res => res.json())
-        .then(result => {
-            if (result.status === 'success') {
-                switchInput.checked = (state === 'ON');
-                const textEl = document.getElementById('relayStatusText');
-                if (textEl) {
-                    textEl.textContent = state;
-                    textEl.className = 'relay-status-text ' + state;
-                }
-            }
-            closeModal();
-            setTimeout(resetSwipe, 300);
-        })
-        .catch(err => {
-            console.error('Relay toggle error:', err);
-            closeModal();
-            resetSwipe();
-        });
-    }
-
-    // Listeners del Swipe
-    swipeBtn.addEventListener('mousedown', onDragStart);
-    swipeBtn.addEventListener('touchstart', onDragStart, {passive: true});
-    window.addEventListener('mousemove', onDragMove);
-    window.addEventListener('touchmove', onDragMove, {passive: true});
-    window.addEventListener('mouseup', onDragEnd);
-    window.addEventListener('touchend', onDragEnd);
-}
 
 /* =====================================================
    SIDEBAR

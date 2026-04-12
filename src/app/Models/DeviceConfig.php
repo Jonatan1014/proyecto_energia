@@ -105,23 +105,6 @@ class DeviceConfig {
     }
 
     /**
-     * Actualizar solo el estado del relay
-     */
-    public function updateRelayState($userId, $state) {
-        try {
-            $stmt = $this->pdo->prepare("
-                UPDATE device_config 
-                SET relay_default = ?
-                WHERE user_id = ? AND is_active = 1
-            ");
-            return $stmt->execute([$state, $userId]);
-        } catch (Exception $e) {
-            error_log("Error updating relay state: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Regenerar API key
      */
     public function regenerateApiKey($id, $userId) {
