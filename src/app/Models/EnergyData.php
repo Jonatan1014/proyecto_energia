@@ -313,4 +313,11 @@ class EnergyData {
             return 0;
         }
     }
+
+    /**
+     * Calcular costo de energía
+     */
+    public function calculateCost($energy, $rate) {
+        return round($energy * $rate, 2);
+    }
 }
