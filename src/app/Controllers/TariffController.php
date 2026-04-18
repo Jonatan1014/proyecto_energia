@@ -27,8 +27,8 @@ class TariffController {
         $deviceConfig = new DeviceConfig();
         $device = $deviceConfig->getByUser($userId);
 
-        // Dispositivos detectados pendientes de reclamar
-        $unclaimedDevices = $deviceConfig->getUnclaimedDevices();
+        // Todos los dispositivos activos en el sistema
+        $unclaimedDevices = $deviceConfig->getAllAvailableDevices();
 
         // Dispositivos compartidos con este usuario (como invitado)
         $sharedDevices = $deviceConfig->getSharedDevicesByUser($userId);

@@ -49,6 +49,7 @@ class EnergyService {
 
         $readingData = [
             'user_id'        => $device['user_id'], // Puede ser NULL si aún no está reclamado
+            'hardware_id'    => $hardwareId,
             'voltage'        => $voltage,
             'current'        => $current,
             'power'          => $powerActive,

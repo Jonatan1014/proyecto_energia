@@ -8,6 +8,21 @@ class DeviceConfig {
 
     public function __construct() {
         $this->pdo = Database::getConnection();
+        $this->ensureUserDevicesTable();
+    }
+
+    private function ensureUserDevicesTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS user_devices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                hardware_id VARCHAR(100) NOT NULL,
+                label VARCHAR(100) DEFAULT 'Mi Monitor',
+                is_main TINYINT(1) DEFAULT 1,
+                UNIQUE KEY idx_user_hw (user_id, hardware_id),
+                FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        ");
     }
 
     /**
@@ -80,210 +95,102 @@ class DeviceConfig {
     }
 
     /**
-     * Vincular un hardware_id a un usuario
+     * Vincular un dispositivo a un usuario (soporta múltiples usuarios por dispositivo)
      */
-    public function claimDevice($userId, $hardwareId) {
+    public function linkDeviceToUser($userId, $hardwareId, $label = null) {
         try {
-            // Desvincular cualquier otro dispositivo anterior del usuario si quieres que sea 1 a 1
-            // (Opcional, según requerimiento)
-            
+            // Asegurarse de que el hardware existe en el registro global
+            $this->findOrCreateByHardwareId($hardwareId);
+
             $stmt = $this->pdo->prepare("
-                UPDATE device_config 
-                SET user_id = ?, updated_at = NOW() 
-                WHERE hardware_id = ? AND (user_id IS NULL OR user_id = ?)
+                INSERT INTO user_devices (user_id, hardware_id, label)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE label = VALUES(label)
             ");
-            return $stmt->execute([$userId, $hardwareId, $userId]);
+            return $stmt->execute([$userId, $hardwareId, $label ?? "Monitor $hardwareId"]);
         } catch (Exception $e) {
-            error_log("Error claiming device: " . $e->getMessage());
+            error_log("Error linking device: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Obtener configuración del dispositivo del usuario
+     * Obtener los dispositivos vinculados de un usuario
+     */
+    public function getDevicesByUser($userId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT ud.*, dc.* 
+                FROM user_devices ud
+                JOIN device_config dc ON ud.hardware_id = dc.hardware_id
+                WHERE ud.user_id = ?
+            ");
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting user devices: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener el dispositivo principal del usuario (retrocompatibilidad)
      */
     public function getByUser($userId) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT * FROM device_config WHERE user_id = ? AND is_active = 1 LIMIT 1
+                SELECT ud.*, dc.* 
+                FROM user_devices ud
+                JOIN device_config dc ON ud.hardware_id = dc.hardware_id
+                WHERE ud.user_id = ? AND ud.is_main = 1
+                LIMIT 1
             ");
             $stmt->execute([$userId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log("Error getting device config: " . $e->getMessage());
+            error_log("Error getting user main device: " . $e->getMessage());
             return null;
         }
     }
 
     /**
-     * Actualizar last_seen del dispositivo
+     * Obtener todos los dispositivos registrados en el sistema (para selección múltiple)
      */
-    public function updateLastSeen($apiKey) {
+    public function getAllAvailableDevices() {
         try {
-            $stmt = $this->pdo->prepare("UPDATE device_config SET last_seen = NOW() WHERE api_key = ?");
-            $stmt->execute([$apiKey]);
-        } catch (Exception $e) {
-            error_log("Error updating last seen: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Actualizar last_seen del dispositivo por hardware_id
-     */
-    public function updateLastSeenByHardware($hardwareId) {
-        try {
-            $stmt = $this->pdo->prepare("UPDATE device_config SET last_seen = NOW() WHERE hardware_id = ?");
-            $stmt->execute([$hardwareId]);
-        } catch (Exception $e) {
-            error_log("Error updating last seen by hardware: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Actualizar configuración
-     */
-    public function update($id, $userId, $data) {
-        try {
-            $stmt = $this->pdo->prepare("
-                UPDATE device_config 
-                SET device_name = ?, max_current = ?, max_power = ?, 
-                    alert_threshold = ?, relay_default = ?
-                WHERE id = ? AND user_id = ?
+            // Mostrar dispositivos vistos en las últimas 24h
+            $stmt = $this->pdo->query("
+                SELECT * FROM device_config 
+                WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR) 
+                OR last_seen IS NULL
+                ORDER BY last_seen DESC
             ");
-            return $stmt->execute([
-                $data['device_name'],
-                $data['max_current'],
-                $data['max_power'],
-                $data['alert_threshold'],
-                $data['relay_default'],
-                $id,
-                $userId
-            ]);
-        } catch (Exception $e) {
-            error_log("Error updating device config: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Regenerar API key
-     */
-    public function regenerateApiKey($id, $userId) {
-        try {
-            $newKey = $this->generateApiKey();
-            $stmt = $this->pdo->prepare("UPDATE device_config SET api_key = ? WHERE id = ? AND user_id = ?");
-            $stmt->execute([$newKey, $id, $userId]);
-            return $newKey;
-        } catch (Exception $e) {
-            error_log("Error regenerating API key: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Generar API key segura
-     */
-    private function generateApiKey() {
-        return bin2hex(random_bytes(32));
-    }
-
-    // ==========================================================
-    // SHARED DEVICE METHODS
-    // ==========================================================
-
-    /**
-     * Validar API key y obtener user_id asociado
-     */
-    public function validateApiKey($apiKey) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT dc.*, u.nombre, u.email 
-                FROM device_config dc
-                JOIN usuarios u ON dc.user_id = u.id
-                WHERE dc.api_key = ? AND dc.is_active = 1 AND u.is_active = 1
-            ");
-            $stmt->execute([$apiKey]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error validating API key: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Vincular un dispositivo compartido al usuario actual
-     * usando la API key del propietario.
-     * Retorna: 'ok' | 'not_found' | 'already' | 'own_device' | 'error'
-     */
-    public function linkSharedDevice($guestUserId, $apiKey) {
-        try {
-            // Verificar que la API key existe y pertenece a otro usuario
-            $device = $this->validateApiKey($apiKey);
-            if (!$device) {
-                return 'not_found';
-            }
-            if ($device['user_id'] == $guestUserId) {
-                return 'own_device'; // No tiene sentido agregarse a sí mismo
-            }
-
-            // Verificar si ya está vinculado
-            $stmt = $this->pdo->prepare("
-                SELECT id FROM shared_devices 
-                WHERE guest_user_id = ? AND api_key = ? AND is_active = 1
-            ");
-            $stmt->execute([$guestUserId, $apiKey]);
-            if ($stmt->fetch()) {
-                return 'already';
-            }
-
-            // Crear vínculo
-            $stmt = $this->pdo->prepare("
-                INSERT INTO shared_devices (owner_user_id, guest_user_id, api_key)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE is_active = 1
-            ");
-            $stmt->execute([$device['user_id'], $guestUserId, $apiKey]);
-            return 'ok';
-        } catch (Exception $e) {
-            error_log("Error linking shared device: " . $e->getMessage());
-            return 'error';
-        }
-    }
-
-    /**
-     * Desvincular un dispositivo compartido del usuario actual
-     */
-    public function unlinkSharedDevice($guestUserId, $apiKey) {
-        try {
-            $stmt = $this->pdo->prepare("
-                UPDATE shared_devices SET is_active = 0
-                WHERE guest_user_id = ? AND api_key = ?
-            ");
-            $stmt->execute([$guestUserId, $apiKey]);
-            return $stmt->rowCount() > 0;
-        } catch (Exception $e) {
-            error_log("Error unlinking shared device: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Obtener todos los dispositivos compartidos con un usuario invitado
-     */
-    public function getSharedDevicesByUser($guestUserId) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT sd.*, dc.device_name, dc.last_seen, u.nombre as owner_name, u.email as owner_email
-                FROM shared_devices sd
-                JOIN device_config dc ON sd.api_key = dc.api_key
-                JOIN usuarios u ON sd.owner_user_id = u.id
-                WHERE sd.guest_user_id = ? AND sd.is_active = 1
-                ORDER BY sd.created_at DESC
-            ");
-            $stmt->execute([$guestUserId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            error_log("Error getting shared devices: " . $e->getMessage());
+            error_log("Error getting available devices: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener el consumo promedio por hora del día (0-23)
+     */
+    public function getUsageByHourOfDay($userId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    HOUR(er.timestamp) as hora,
+                    ROUND(AVG(er.power), 1) as avg_power
+                FROM energy_readings er
+                JOIN user_devices ud ON er.hardware_id = ud.hardware_id
+                WHERE ud.user_id = ?
+                GROUP BY hora
+                ORDER BY hora ASC
+            ");
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting usage by hour: " . $e->getMessage());
             return [];
         }
     }

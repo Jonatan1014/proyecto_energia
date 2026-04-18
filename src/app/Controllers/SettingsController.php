@@ -95,12 +95,12 @@ class SettingsController {
             exit;
         }
 
-        $result = $this->deviceConfig->claimDevice($userId, $hardwareId);
+        $result = $this->deviceConfig->linkDeviceToUser($userId, $hardwareId);
 
         if ($result) {
             $_SESSION['success'] = "¡Dispositivo vinculado con éxito! Hardware ID: $hardwareId";
         } else {
-            $_SESSION['error'] = 'No se pudo vincular el dispositivo. Ya podría tener dueño.';
+            $_SESSION['error'] = 'No se pudo vincular el dispositivo.';
         }
 
         header("Location: " . BASE_URL . "/settings");
