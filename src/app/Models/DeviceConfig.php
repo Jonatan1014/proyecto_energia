@@ -210,4 +210,41 @@ class DeviceConfig {
             error_log("Error updating last seen by hardware: " . $e->getMessage());
         }
     }
+
+    /**
+     * Actualizar configuración del dispositivo (Nombre, Relé, Alertas)
+     * Verifica que el usuario tenga permiso sobre el Hardware ID a través de user_devices
+     */
+    public function update($id, $userId, $data) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT hardware_id FROM user_devices 
+                WHERE user_id = ? AND (id = ? OR hardware_id = (SELECT hardware_id FROM device_config WHERE id = ?))
+                LIMIT 1
+            ");
+            $stmt->execute([$userId, (int)$id, (int)$id]);
+            $device = $stmt->fetch();
+
+            if (!$device) return false;
+            $hardwareId = $device['hardware_id'];
+
+            $stmt = $this->pdo->prepare("
+                UPDATE device_config 
+                SET device_name = ?, max_current = ?, max_power = ?, 
+                    alert_threshold = ?, relay_default = ?
+                WHERE hardware_id = ?
+            ");
+            return $stmt->execute([
+                $data['device_name'],
+                $data['max_current'],
+                $data['max_power'],
+                $data['alert_threshold'],
+                $data['relay_default'],
+                $hardwareId
+            ]);
+        } catch (Exception $e) {
+            error_log("Error updating device config: " . $e->getMessage());
+            return false;
+        }
+    }
 }
