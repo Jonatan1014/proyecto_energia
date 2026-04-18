@@ -467,9 +467,11 @@ void enviarDatosWebhook(float v, float c, float p, float e) {
 
   int httpResponseCode = http.POST(payload);
   if (httpResponseCode > 0) {
-    Serial.println("Webhook OK: " + String(httpResponseCode));
+    Serial.println("Webhook Status: " + String(httpResponseCode));
+    String response = http.getString();
+    Serial.println("Respuesta Servidor: " + response);
   } else {
-    Serial.println("Webhook Error: " + String(httpResponseCode));
+    Serial.println("Error de conexión: " + String(httpResponseCode));
   }
   http.end();
 }

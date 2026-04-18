@@ -15,11 +15,13 @@ class DeviceConfig {
      */
     public function findOrCreateByHardwareId($hardwareId) {
         try {
+            error_log("DEBUG: findOrCreateByHardwareId searching for: " . $hardwareId);
             $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE hardware_id = ? LIMIT 1");
             $stmt->execute([$hardwareId]);
             $device = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$device) {
+                error_log("DEBUG: Device not found. Attempting registration for: " . $hardwareId);
                 // Si es nuevo, registrarlo como no reclamado
                 $stmt = $this->pdo->prepare("
                     INSERT INTO device_config (hardware_id, device_name, api_key)
@@ -27,11 +29,12 @@ class DeviceConfig {
                 ");
                 $apiKey = bin2hex(random_bytes(16)); // Keep internal API key for legacy compatibility if needed
                 $stmt->execute([$hardwareId, "ESP32 ($hardwareId)", $apiKey]);
+                error_log("DEBUG: Registration success for: " . $hardwareId);
                 return $this->findOrCreateByHardwareId($hardwareId);
             }
             return $device;
         } catch (Exception $e) {
-            error_log("Error in findOrCreateByHardwareId: " . $e->getMessage());
+            error_log("DEBUG ERROR in findOrCreateByHardwareId: " . $e->getMessage());
             return null;
         }
     }

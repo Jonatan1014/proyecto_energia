@@ -58,11 +58,13 @@ class ApiController {
         }
 
         if (!$hardwareId) {
+            error_log("DEBUG: Hardware ID missing. Headers: " . json_encode($this->getHeader('X-HARDWARE-ID')));
             http_response_code(401);
             echo json_encode(['status' => 'error', 'message' => 'Hardware ID requerido']);
             return;
         }
 
+        error_log("DEBUG: Processing hardwareId: $hardwareId");
         $result = $this->energyService->saveReading($hardwareId, $data);
 
         if ($result['success']) {
