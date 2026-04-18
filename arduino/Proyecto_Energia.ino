@@ -52,7 +52,7 @@ const char* password   = "balon100";
 // --- ENDPOINTS LOCALES (CAMBIAR IP Y API KEY) ---
 // Obtener la IP de la máquina donde instalaste XAMPP si usas red local
 const char* apiKey        = "667f982a2c7ad0d77788f848d2a239df857ec9dfc7b29ac66c2ec94185872d2a"; // URL del servidor (Webhook)
-const char* webhookUrl = "http://energia.systemautomatic.xyz/proyecto_energia/src/public/api/save"; // Cambiar por tu IP real
+const char* webhookUrl = "https://energia.systemautomatic.xyz/proyecto_energia/src/public/api/save"; // Cambiar por tu IP real
 
 // No necesitas API key manual, el sistema usará tu MAC Address como ID único
 String getHardwareId() {
@@ -382,8 +382,8 @@ void consultarEstadoRelay() {
   HTTPClient http;
 
   Serial.println("Consultando estado del Relay...");
-  http.begin(relayCheckUrl);
-  http.addHeader("X-API-KEY", apiKey);
+  http.begin(String(relayCheckUrl) + "?hardware_id=" + getHardwareId());
+  http.addHeader("X-HARDWARE-ID", getHardwareId());
 
   int httpResponseCode = http.GET();
   if (httpResponseCode > 0) {
@@ -451,9 +451,10 @@ void enviarDatosWebhook(float v, float c, float p, float e) {
   Serial.println("Enviando datos al Webhook...");
   http.begin(webhookUrl);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-HARDWARE-ID", getHardwareId()); // Usar MAC Address como identificador
+  http.addHeader("X-HARDWARE-ID", getHardwareId()); 
 
   String payload = "{";
+  payload += "\"hardware_id\":\"" + getHardwareId() + "\",";
   payload += "\"voltaje\":" + String(v, 1) + ",";
   payload += "\"corriente\":" + String(c, 3) + ",";
   payload += "\"potencia\":" + String(p, 1) + ",";

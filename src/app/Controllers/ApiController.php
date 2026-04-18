@@ -12,6 +12,25 @@ class ApiController {
     }
 
     /**
+     * Obtener un header de forma robusta (maneja diferentes servidores)
+     */
+    private function getHeader($name) {
+        $headerName = 'HTTP_' . str_replace('-', '_', strtoupper($name));
+        if (isset($_SERVER[$headerName])) {
+            return $_SERVER[$headerName];
+        }
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            foreach ($headers as $key => $value) {
+                if (strcasecmp($key, $name) === 0) {
+                    return $value;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * POST /api/save
      * Recibir datos del ESP32 (autenticado por Hardware ID / MAC)
      */
@@ -24,8 +43,8 @@ class ApiController {
             return;
         }
 
-        // Obtener Hardware ID del header o del body
-        $hardwareId = $_SERVER['HTTP_X_HARDWARE_ID'] ?? null;
+        // Obtener Hardware ID del header de forma robusta
+        $hardwareId = $this->getHeader('X-HARDWARE-ID');
         
         $rawBody = file_get_contents('php://input');
         $data = json_decode($rawBody, true);
@@ -62,8 +81,8 @@ class ApiController {
     public function getRelayConfig() {
         header('Content-Type: application/json');
 
-        // Obtener Hardware ID
-        $hardwareId = $_SERVER['HTTP_X_HARDWARE_ID'] ?? $_GET['hardware_id'] ?? null;
+        // Obtener Hardware ID (Header o Parámetro)
+        $hardwareId = $this->getHeader('X-HARDWARE-ID') ?? $_GET['hardware_id'] ?? null;
 
         if (!$hardwareId) {
             http_response_code(401);
