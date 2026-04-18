@@ -57,7 +57,7 @@ class DeviceConfig {
                  $stmt->execute([$hardwareId]);
                  return $stmt->fetch(PDO::FETCH_ASSOC);
             }
-            return null;
+            return ['error_debug' => $e->getMessage()];
         }
     }
 

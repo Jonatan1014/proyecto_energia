@@ -24,10 +24,11 @@ class EnergyService {
         // 1. Identificar el dispositivo por hardware_id
         $device = $this->deviceConfig->findOrCreateByHardwareId($hardwareId);
         
-        if (!$device) {
+        if (!$device || isset($device['error_debug'])) {
+            $msg = $device['error_debug'] ?? "Error desconocido al registrar hardware";
             return [
                 'success' => false, 
-                'message' => "Dispositivo [$hardwareId] no pudo ser registrado o encontrado"
+                'message' => "Error DB: $msg"
             ];
         }
 
