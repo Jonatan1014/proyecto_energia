@@ -242,7 +242,7 @@ include __DIR__ . '/includes/sidebar.php';
                         <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
                         <div style="flex:1;">
                             <div style="font-weight:600;"><?php echo htmlspecialchars($sd['device_name']); ?></div>
-                            <div style="font-size:0.75rem; opacity: 0.6;">Propietario: <?php echo htmlspecialchars($sd['owner_name']); ?></div>
+                            <div style="font-size:0.75rem; opacity: 0.6;">Hardware ID: <?php echo htmlspecialchars($sd['hardware_id']); ?></div>
                         </div>
                         <form method="POST" action="<?php echo url('settings/unlink-device'); ?>">
                             <input type="hidden" name="hardware_id" value="<?php echo htmlspecialchars($sd['hardware_id'] ?? ''); ?>">
