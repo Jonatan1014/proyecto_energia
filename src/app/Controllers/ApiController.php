@@ -13,7 +13,7 @@ class ApiController {
 
     /**
      * POST /api/save
-     * Recibir datos del ESP32 (autenticado por API key)
+     * Recibir datos del ESP32 (autenticado por Hardware ID / MAC)
      */
     public function saveData() {
         header('Content-Type: application/json');
@@ -24,28 +24,27 @@ class ApiController {
             return;
         }
 
-        // Obtener API key del header o del body
-        $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
+        // Obtener Hardware ID del header o del body
+        $hardwareId = $_SERVER['HTTP_X_HARDWARE_ID'] ?? null;
         
         $rawBody = file_get_contents('php://input');
         $data = json_decode($rawBody, true);
 
         if (!$data) {
-            // Intentar con form data
             $data = $_POST;
         }
 
-        if (!$apiKey && isset($data['api_key'])) {
-            $apiKey = $data['api_key'];
+        if (!$hardwareId && isset($data['hardware_id'])) {
+            $hardwareId = $data['hardware_id'];
         }
 
-        if (!$apiKey) {
+        if (!$hardwareId) {
             http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'API key requerida']);
+            echo json_encode(['status' => 'error', 'message' => 'Hardware ID requerido']);
             return;
         }
 
-        $result = $this->energyService->saveReading($apiKey, $data);
+        $result = $this->energyService->saveReading($hardwareId, $data);
 
         if ($result['success']) {
             http_response_code(200);
@@ -53,6 +52,34 @@ class ApiController {
         } else {
             http_response_code(400);
             echo json_encode(['status' => 'error', 'message' => $result['message']]);
+        }
+    }
+
+    /**
+     * GET /api/relay-status
+     * Obtener el estado configurado del relay por hardware_id
+     */
+    public function getRelayConfig() {
+        header('Content-Type: application/json');
+
+        // Obtener Hardware ID
+        $hardwareId = $_SERVER['HTTP_X_HARDWARE_ID'] ?? $_GET['hardware_id'] ?? null;
+
+        if (!$hardwareId) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'Hardware ID requerido']);
+            return;
+        }
+
+        require_once __DIR__ . '/../Models/DeviceConfig.php';
+        $model = new DeviceConfig();
+        $device = $model->findOrCreateByHardwareId($hardwareId);
+
+        if ($device) {
+            echo json_encode(['status' => 'success', 'relay' => $device['relay_default']]);
+        } else {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Dispositivo no encontrado']);
         }
     }
 
@@ -186,35 +213,4 @@ class ApiController {
         echo json_encode(['status' => 'success', 'data' => $reports]);
     }
 
-    /**
-     * GET /api/relay-status
-     * Obtener el estado configurado del relay por el usuario para el dispositivo (Requiere API Key)
-     */
-    public function getRelayConfig() {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            http_response_code(405);
-            echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-            return;
-        }
-
-        // Obtener API key del header o query param
-        $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? $_GET['api_key'] ?? null;
-
-        if (!$apiKey) {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'API key requerida']);
-            return;
-        }
-
-        $relayStatus = $this->energyService->getRelayConfig($apiKey);
-
-        if ($relayStatus) {
-            echo json_encode(['status' => 'success', 'relay' => $relayStatus]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'API key inválida']);
-        }
-    }
 }

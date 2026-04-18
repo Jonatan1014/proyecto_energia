@@ -26,6 +26,7 @@ return [
     '/tariffs/delete'       => ['controller' => 'TariffController',   'action' => 'delete'],
     '/settings/device'      => ['controller' => 'SettingsController', 'action' => 'updateDevice'],
     '/settings/regenerate-key' => ['controller' => 'SettingsController', 'action' => 'regenerateKey'],
+    '/settings/claim-device' => ['controller' => 'SettingsController', 'action' => 'claimDevice'],
     '/settings/link-device'  => ['controller' => 'SettingsController', 'action' => 'linkDevice'],
     '/settings/unlink-device'=> ['controller' => 'SettingsController', 'action' => 'unlinkDevice'],
 

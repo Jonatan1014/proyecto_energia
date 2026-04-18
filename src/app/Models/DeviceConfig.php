@@ -11,23 +11,66 @@ class DeviceConfig {
     }
 
     /**
-     * Crear configuración de dispositivo con API key única
+     * Buscar o crear un dispositivo por su Hardware ID (MAC)
      */
-    public function create($userId, $deviceName = 'Monitor PZEM-004T') {
+    public function findOrCreateByHardwareId($hardwareId) {
         try {
-            $apiKey = $this->generateApiKey();
-            $stmt = $this->pdo->prepare("
-                INSERT INTO device_config (user_id, device_name, api_key)
-                VALUES (?, ?, ?)
-            ");
-            $stmt->execute([$userId, $deviceName, $apiKey]);
-            return [
-                'id' => $this->pdo->lastInsertId(),
-                'api_key' => $apiKey
-            ];
+            $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE hardware_id = ? LIMIT 1");
+            $stmt->execute([$hardwareId]);
+            $device = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$device) {
+                // Si es nuevo, registrarlo como no reclamado
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO device_config (hardware_id, device_name, api_key)
+                    VALUES (?, ?, ?)
+                ");
+                $apiKey = bin2hex(random_bytes(16)); // Keep internal API key for legacy compatibility if needed
+                $stmt->execute([$hardwareId, "ESP32 ($hardwareId)", $apiKey]);
+                return $this->findOrCreateByHardwareId($hardwareId);
+            }
+            return $device;
         } catch (Exception $e) {
-            error_log("Error creating device config: " . $e->getMessage());
+            error_log("Error in findOrCreateByHardwareId: " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Obtener lista de dispositivos detectados que no tienen dueño
+     */
+    public function getUnclaimedDevices() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT hardware_id, device_name, last_seen 
+                FROM device_config 
+                WHERE user_id IS NULL AND is_active = 1
+                ORDER BY last_seen DESC LIMIT 10
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting unclaimed devices: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Vincular un hardware_id a un usuario
+     */
+    public function claimDevice($userId, $hardwareId) {
+        try {
+            // Desvincular cualquier otro dispositivo anterior del usuario si quieres que sea 1 a 1
+            // (Opcional, según requerimiento)
+            
+            $stmt = $this->pdo->prepare("
+                UPDATE device_config 
+                SET user_id = ?, updated_at = NOW() 
+                WHERE hardware_id = ? AND (user_id IS NULL OR user_id = ?)
+            ");
+            return $stmt->execute([$userId, $hardwareId, $userId]);
+        } catch (Exception $e) {
+            error_log("Error claiming device: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -48,25 +91,6 @@ class DeviceConfig {
     }
 
     /**
-     * Validar API key y obtener user_id asociado
-     */
-    public function validateApiKey($apiKey) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT dc.*, u.nombre, u.email 
-                FROM device_config dc
-                JOIN usuarios u ON dc.user_id = u.id
-                WHERE dc.api_key = ? AND dc.is_active = 1 AND u.is_active = 1
-            ");
-            $stmt->execute([$apiKey]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error validating API key: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
      * Actualizar last_seen del dispositivo
      */
     public function updateLastSeen($apiKey) {
@@ -75,6 +99,18 @@ class DeviceConfig {
             $stmt->execute([$apiKey]);
         } catch (Exception $e) {
             error_log("Error updating last seen: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar last_seen del dispositivo por hardware_id
+     */
+    public function updateLastSeenByHardware($hardwareId) {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE device_config SET last_seen = NOW() WHERE hardware_id = ?");
+            $stmt->execute([$hardwareId]);
+        } catch (Exception $e) {
+            error_log("Error updating last seen by hardware: " . $e->getMessage());
         }
     }
 
@@ -129,6 +165,25 @@ class DeviceConfig {
     // ==========================================================
     // SHARED DEVICE METHODS
     // ==========================================================
+
+    /**
+     * Validar API key y obtener user_id asociado
+     */
+    public function validateApiKey($apiKey) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT dc.*, u.nombre, u.email 
+                FROM device_config dc
+                JOIN usuarios u ON dc.user_id = u.id
+                WHERE dc.api_key = ? AND dc.is_active = 1 AND u.is_active = 1
+            ");
+            $stmt->execute([$apiKey]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error validating API key: " . $e->getMessage());
+            return null;
+        }
+    }
 
     /**
      * Vincular un dispositivo compartido al usuario actual

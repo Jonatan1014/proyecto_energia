@@ -79,29 +79,68 @@ class SettingsController {
     }
 
     /**
-     * POST /settings/link-device - Vincular API key de otro dispositivo (acceso compartido)
+     * POST /settings/claim-device
+     * Vincular un dispositivo detectado por hardware_id a la cuenta del usuario
+     */
+    public function claimDevice() {
+        AuthService::requireLogin();
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        $userId = AuthService::getUserId();
+        $hardwareId = trim($_POST['hardware_id'] ?? '');
+
+        if (empty($hardwareId)) {
+            $_SESSION['error'] = 'Hardware ID inválido';
+            header("Location: " . BASE_URL . "/settings");
+            exit;
+        }
+
+        $result = $this->deviceConfig->claimDevice($userId, $hardwareId);
+
+        if ($result) {
+            $_SESSION['success'] = "¡Dispositivo vinculado con éxito! Hardware ID: $hardwareId";
+        } else {
+            $_SESSION['error'] = 'No se pudo vincular el dispositivo. Ya podría tener dueño.';
+        }
+
+        header("Location: " . BASE_URL . "/settings");
+        exit;
+    }
+
+    /**
+     * POST /settings/link-device - Vincular por Hardware ID de otro dispositivo (acceso compartido)
      */
     public function linkDevice() {
         AuthService::requireLogin();
         if (session_status() === PHP_SESSION_NONE) session_start();
 
         $userId  = AuthService::getUserId();
-        $apiKey  = trim($_POST['shared_api_key'] ?? '');
+        $hardwareId  = trim($_POST['shared_hardware_id'] ?? '');
 
-        if (empty($apiKey)) {
-            $_SESSION['error'] = 'Debes ingresar una API Key válida';
+        if (empty($hardwareId)) {
+            $_SESSION['error'] = 'Debes ingresar un Hardware ID válido';
             header("Location: " . BASE_URL . "/settings");
             exit;
         }
 
-        $result = $this->energyService->linkSharedDevice($userId, $apiKey);
+        // Buscamos el dispositivo por hardware_id
+        $device = $this->deviceConfig->findOrCreateByHardwareId($hardwareId);
+        
+        if (!$device || !$device['user_id']) {
+            $_SESSION['error'] = 'El dispositivo ingresado no existe o no tiene un propietario activo.';
+            header("Location: " . BASE_URL . "/settings");
+            exit;
+        }
+
+        // Usamos la API key interna para el vínculo compartido (legacy logic simplified)
+        $result = $this->energyService->linkSharedDevice($userId, $device['api_key']);
 
         $messages = [
-            'ok'         => '¡Dispositivo vinculado! Ahora puedes ver sus datos en el dashboard.',
-            'not_found'  => 'La API Key ingresada no existe. Verifica con el propietario del dispositivo.',
+            'ok'         => '¡Dispositivo compartido vinculado! Ahora puedes ver sus datos.',
+            'not_found'  => 'El dispositivo no existe.',
             'already'    => 'Ya tienes acceso a ese dispositivo.',
-            'own_device' => 'No puedes vincularte con tu propio dispositivo.',
-            'error'      => 'Error interno al vincular el dispositivo.',
+            'own_device' => 'Ese es tu propio dispositivo principal.',
+            'error'      => 'Error interno al vincular compartidos.',
         ];
 
         if ($result === 'ok') {
@@ -122,10 +161,14 @@ class SettingsController {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
         $userId = AuthService::getUserId();
-        $apiKey = trim($_POST['api_key'] ?? '');
+        $hardwareId = trim($_POST['hardware_id'] ?? ''); 
+
+        // Encontrar la API key para desvincular (asumiendo que shared_devices usa api_key)
+        $device = $this->deviceConfig->findOrCreateByHardwareId($hardwareId);
+        $apiKey = $device['api_key'] ?? '';
 
         if (empty($apiKey)) {
-            $_SESSION['error'] = 'API Key inválida';
+            $_SESSION['error'] = 'Hardware ID inválido';
             header("Location: " . BASE_URL . "/settings");
             exit;
         }

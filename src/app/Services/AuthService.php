@@ -154,7 +154,7 @@ class AuthService {
     }
 
     /**
-     * Requerir autenticación
+     * Requerir autenticación (y verificar que el usuario exista en la DB)
      */
     public static function requireLogin() {
         if (!self::isLoggedIn()) {
@@ -162,7 +162,17 @@ class AuthService {
                 session_start();
             }
             $_SESSION['error'] = 'Debes iniciar sesión para acceder a esta página';
-            header("Location: login");
+            header("Location: " . BASE_URL . "/login");
+            exit;
+        }
+
+        // Verificar si el usuario aún existe en la base de datos (evita Zombie Sessions tras un reset de DB)
+        $user = User::findById(self::getUserId());
+        if (!$user) {
+            self::logout();
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $_SESSION['error'] = 'Tu sesión ha expirado o el usuario ya no existe.';
+            header("Location: " . BASE_URL . "/login");
             exit;
         }
     }

@@ -19,11 +19,13 @@ class EnergyService {
     /**
      * Guardar lectura desde el ESP32
      */
-    public function saveReading($apiKey, $data) {
-        // Validar API key
-        $device = $this->deviceConfig->validateApiKey($apiKey);
+    public function saveReading($hardwareId, $data) {
+        // Buscar por Hardware ID (MAC)
+        // Si no existe, lo crea automáticamente sin dueño
+        $device = $this->deviceConfig->findOrCreateByHardwareId($hardwareId);
+        
         if (!$device) {
-            return ['success' => false, 'message' => 'API key inválida'];
+            return ['success' => false, 'message' => 'Dispositivo no reconocido'];
         }
 
         // Preparar datos
@@ -34,16 +36,18 @@ class EnergyService {
 
         // Potencia aparente S = V * I
         $apparentPower = $voltage * $current;
-        // Potencia reactiva Q = sqrt(S² - P²)  (en VAR)
-        $reactivePower = ($apparentPower > $power)
-            ? sqrt(max(0, ($apparentPower * $apparentPower) - ($power * $power)))
+        $powerActive   = $power;
+
+        // Potencia reactiva Q = sqrt(S² - P²)
+        $reactivePower = ($apparentPower > $powerActive)
+            ? sqrt(max(0, ($apparentPower * $apparentPower) - ($powerActive * $powerActive)))
             : 0;
 
         $readingData = [
-            'user_id'        => $device['user_id'],
+            'user_id'        => $device['user_id'], // Puede ser NULL si aún no está reclamado
             'voltage'        => $voltage,
             'current'        => $current,
-            'power'          => $power,
+            'power'          => $powerActive,
             'reactive_power' => round($reactivePower, 2),
             'energy'         => floatval($data['energia'] ?? $data['energy'] ?? 0),
             'frequency'      => floatval($data['frecuencia'] ?? $data['frequency'] ?? 0),
@@ -52,27 +56,26 @@ class EnergyService {
             'relay_status'   => strtoupper($data['relay_estado'] ?? $data['relay_status'] ?? 'OFF'),
         ];
 
-        // Validar datos
+        // Validar datos básicos
         if ($readingData['voltage'] < 0 || $readingData['voltage'] > 500) {
             return ['success' => false, 'message' => 'Voltaje fuera de rango'];
         }
-        if ($readingData['current'] < 0 || $readingData['current'] > 200) {
-            return ['success' => false, 'message' => 'Corriente fuera de rango'];
-        }
 
-        // Guardar
+        // Guardar la lectura (EnergyData::saveReading maneja user_id NULL)
         $saved = $this->energyData->saveReading($readingData);
 
-        // Actualizar last_seen
-        $this->deviceConfig->updateLastSeen($apiKey);
+        // Actualizar last_seen usando hardwareId
+        $this->deviceConfig->updateLastSeenByHardware($hardwareId);
 
-        // Verificar alertas (sobrecorriente, sobrepotencia)
-        $this->checkAlerts($device, $readingData);
+        // Si tiene dueño, verificar alertas
+        if ($device['user_id']) {
+            $this->checkAlerts($device, $readingData);
+        }
 
         if ($saved) {
-            return ['success' => true, 'message' => 'Datos guardados correctamente'];
+            return ['success' => true, 'message' => 'Datos procesados correctamente'];
         }
-        return ['success' => false, 'message' => 'Error al guardar los datos'];
+        return ['success' => false, 'message' => 'Error al guardar lecturas'];
     }
 
     /**

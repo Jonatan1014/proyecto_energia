@@ -27,11 +27,8 @@ class TariffController {
         $deviceConfig = new DeviceConfig();
         $device = $deviceConfig->getByUser($userId);
 
-        // Si no tiene dispositivo, crear uno automáticamente
-        if (!$device) {
-            $result = $deviceConfig->create($userId);
-            $device = $deviceConfig->getByUser($userId);
-        }
+        // Dispositivos detectados pendientes de reclamar
+        $unclaimedDevices = $deviceConfig->getUnclaimedDevices();
 
         // Dispositivos compartidos con este usuario (como invitado)
         $sharedDevices = $deviceConfig->getSharedDevicesByUser($userId);

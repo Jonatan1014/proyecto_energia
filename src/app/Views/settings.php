@@ -92,7 +92,7 @@ include __DIR__ . '/includes/sidebar.php';
         </div>
 
         <!-- ========================================
-             SECCIÓN: CONFIGURACIÓN DEL DISPOSITIVO
+             SECCIÓN: MI DISPOSITIVO (HARDWARE ID)
              ======================================== -->
         <div class="settings-section">
             <div class="section-header">
@@ -101,171 +101,155 @@ include __DIR__ . '/includes/sidebar.php';
                         <i class="fas fa-microchip"></i>
                     </div>
                     <div>
-                        <h2>Dispositivo ESP32</h2>
-                        <p>Configuración del monitor de energía y conexión API</p>
+                        <h2>Mi Monitor ESP32</h2>
+                        <p>Identificación física y estado del hardware</p>
                     </div>
                 </div>
             </div>
 
-            <!-- API Key -->
-            <div class="api-key-card">
-                <div class="api-key-header">
-                    <h3><i class="fas fa-key"></i> API Key</h3>
-                    <span class="api-key-hint">Usa esta clave en tu ESP32 para enviar datos</span>
-                </div>
-                <div class="api-key-display">
-                    <code id="apiKeyValue"><?php echo $device['api_key'] ?? 'Sin clave'; ?></code>
-                    <button class="btn-copy" onclick="copyApiKey()" title="Copiar">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-                <div class="api-key-footer">
-                    <div class="api-endpoint">
-                        <span class="endpoint-label">Endpoint:</span>
-                        <code>POST <?php echo (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']; ?><?php echo BASE_URL; ?>/api/save</code>
+            <?php if ($device): ?>
+                <div class="api-key-card">
+                    <div class="api-key-header">
+                        <h3><i class="fas fa-id-card"></i> Hardware ID (MAC)</h3>
+                        <span class="api-key-hint">Identificador único de tu hardware físico</span>
                     </div>
-                    <form method="POST" action="<?php echo url('settings/regenerate-key'); ?>" 
-                          onsubmit="return confirm('¿Regenerar la API Key? \nDeberás actualizar el código de tu ESP32.')">
-                        <button type="submit" class="btn-warning-small">
-                            <i class="fas fa-sync"></i> Regenerar Key
+                    <div class="api-key-display">
+                        <code id="hwIdValue"><?php echo htmlspecialchars($device['hardware_id'] ?? 'N/A'); ?></code>
+                        <button class="btn-copy" onclick="copyHwId()" title="Copiar">
+                            <i class="fas fa-copy"></i>
                         </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Configuración del dispositivo -->
-            <form method="POST" action="<?php echo url('settings/device'); ?>" class="device-form">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="device_name">Nombre del Dispositivo</label>
-                        <input type="text" id="device_name" name="device_name" 
-                               value="<?php echo htmlspecialchars($device['device_name'] ?? 'Monitor PZEM-004T'); ?>">
                     </div>
-                    <div class="form-group">
-                        <label for="relay_default">Relay por defecto</label>
-                        <select id="relay_default" name="relay_default">
-                            <option value="ON" <?php echo ($device['relay_default'] ?? 'ON') === 'ON' ? 'selected' : ''; ?>>Encendido (ON)</option>
-                            <option value="OFF" <?php echo ($device['relay_default'] ?? 'ON') === 'OFF' ? 'selected' : ''; ?>>Apagado (OFF)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="max_current">Corriente Máxima (A)</label>
-                        <input type="number" id="max_current" name="max_current" step="0.01" 
-                               value="<?php echo $device['max_current'] ?? 100; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="max_power">Potencia Máxima (W)</label>
-                        <input type="number" id="max_power" name="max_power" step="0.01" 
-                               value="<?php echo $device['max_power'] ?? 22000; ?>">
-                    </div>
-                    <div class="form-group">
-                        <label for="alert_threshold">Alerta de Consumo (kWh/día)</label>
-                        <input type="number" id="alert_threshold" name="alert_threshold" step="0.01" 
-                               value="<?php echo $device['alert_threshold'] ?? 0; ?>">
-                        <span class="form-hint">0 = Sin alerta</span>
+                    <div class="api-key-footer">
+                        <div class="status-indicator">
+                            <?php 
+                                $isOnline = $device['last_seen'] && (time() - strtotime($device['last_seen']) < 30);
+                            ?>
+                            <span class="dot <?php echo $isOnline ? 'online' : 'offline'; ?>"></span>
+                            <?php echo $isOnline ? 'En línea' : 'Desconectado (Últ. vez: ' . date('H:i', strtotime($device['last_seen'])) . ')'; ?>
+                        </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-save"></i> Guardar Configuración
-                </button>
-            </form>
 
-            <!-- Código de ejemplo para el ESP32 -->
-            <div class="code-example">
-                <h3><i class="fas fa-code"></i> Código para tu ESP32</h3>
-                <p>Modifica la siguiente línea en tu archivo <code>Proyecto_Energia.ino</code>:</p>
-                <pre><code>// Cambia la URL del webhook por:
-const char* webhookUrl = "<?php echo (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']; ?><?php echo BASE_URL; ?>/api/save";
-
-// En la función enviarDatosWebhook(), agrega el header:
-http.addHeader("X-API-KEY", "<?php echo $device['api_key'] ?? 'TU_API_KEY'; ?>");</code></pre>
-            </div>
+                <form method="POST" action="<?php echo url('settings/device'); ?>" class="device-form">
+                    <input type="hidden" name="id" value="<?php echo $device['id']; ?>">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="device_name">Nombre Personalizado</label>
+                            <input type="text" id="device_name" name="device_name" 
+                                   value="<?php echo htmlspecialchars($device['device_name']); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="relay_default">Relay por defecto</label>
+                            <select id="relay_default" name="relay_default">
+                                <option value="ON" <?php echo $device['relay_default'] === 'ON' ? 'selected' : ''; ?>>Encendido (ON)</option>
+                                <option value="OFF" <?php echo $device['relay_default'] === 'OFF' ? 'selected' : ''; ?>>Apagado (OFF)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </form>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-plug-circle-exclamation"></i>
+                    <h3>No tienes un dispositivo vinculado</h3>
+                    <p>Selecciona un dispositivo de la lista de detectados abajo para comenzar.</p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- ========================================
-         SECCIÓN: ACCESO COMPARTIDO
-         Permite ingresar la API key de otro dispositivo
-         para ver sus datos en tiempo real.
+         SECCIÓN: DISPOSITIVOS DETECTADOS (CLAIM)
          ======================================== -->
-    <div class="settings-section">
+    <div class="settings-section" style="margin-top: 2rem;">
         <div class="section-header">
             <div class="section-title-group">
-                <div class="section-icon" style="background: linear-gradient(135deg, #7c3aed, #a78bfa); color:#fff; width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-share-alt"></i>
+                <div class="section-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color:#fff; width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-search"></i>
                 </div>
                 <div>
-                    <h2>Acceso Compartido</h2>
-                    <p>Vincula la API Key de otro dispositivo para ver sus datos en tiempo real</p>
+                    <h2>Dispositivos Detectados</h2>
+                    <p>Dispositivos ESP32 que han enviado datos recientemente pero no tienen dueño</p>
                 </div>
             </div>
         </div>
 
-        <!-- Formulario para vincular nuevo dispositivo -->
-        <div class="api-key-card" style="margin-bottom:1.5rem;">
-            <div class="api-key-header">
-                <h3><i class="fas fa-link"></i> Vincular Dispositivo</h3>
-                <span class="api-key-hint">Ingresa la API Key que te compartió el propietario del dispositivo</span>
-            </div>
-            <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
-            <?php if (!empty($_SESSION['error'])): ?>
-                <div style="background:#fee2e2;border:1px solid #f87171;color:#991b1b;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem;">
-                    <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
-                </div>
-            <?php endif; ?>
-            <?php if (!empty($_SESSION['success'])): ?>
-                <div style="background:#d1fae5;border:1px solid #34d399;color:#065f46;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem;">
-                    <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
-                </div>
-            <?php endif; ?>
-            <form method="POST" action="<?php echo url('settings/link-device'); ?>" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-                <input type="text" name="shared_api_key"
-                       placeholder="Ej: 667f982a2c7ad0d77788f848..."
-                       style="flex:1;min-width:200px;padding:.65rem 1rem;border:1.5px solid var(--border-color,#334155);border-radius:8px;background:var(--input-bg,#0f172a);color:inherit;font-family:monospace;font-size:.85rem;"
-                       required>
-                <button type="submit" class="btn-primary" style="white-space:nowrap;">
-                    <i class="fas fa-plug"></i> Vincular
-                </button>
-            </form>
-        </div>
-
-        <!-- Lista de dispositivos compartidos vinculados -->
-        <?php if (!empty($sharedDevices)): ?>
+        <?php if (!empty($unclaimedDevices)): ?>
             <div class="tariff-list">
-                <h3 class="list-title">Dispositivos Vinculados</h3>
-                <?php foreach ($sharedDevices as $sd): ?>
-                    <?php
-                        $lsTime = $sd['last_seen'] ? strtotime($sd['last_seen']) : null;
-                        $isOnline = $lsTime && (time() - $lsTime < 30);
-                    ?>
-                    <div class="tariff-item" style="display:flex;align-items:center;gap:1rem;">
-                        <span style="width:10px;height:10px;border-radius:50%;background:<?php echo $isOnline ? '#22c55e' : '#ef4444'; ?>;flex-shrink:0;"></span>
-                        <div class="tariff-item-info" style="flex:1;">
-                            <span class="tariff-item-name"><?php echo htmlspecialchars($sd['device_name']); ?></span>
-                            <span class="tariff-item-rate" style="font-size:.78rem;">
-                                Propietario: <?php echo htmlspecialchars($sd['owner_name'] . ' &lt;' . $sd['owner_email'] . '&gt;'); ?>
-                            </span>
-                            <span class="tariff-item-rate" style="font-size:.75rem;opacity:.6;">
-                                <?php echo $isOnline ? '<i class="fas fa-circle" style="color:#22c55e"></i> En línea' : ($lsTime ? 'Última vez: ' . date('d/m/Y H:i', $lsTime) : 'Sin conexión'); ?>
-                            </span>
+                <?php foreach ($unclaimedDevices as $ud): ?>
+                    <div class="tariff-item" style="display:flex; align-items:center; justify-content:space-between; padding: 1.25rem;">
+                        <div class="dev-info">
+                            <div style="font-weight: 600; font-size: 1rem; color: #fff;">
+                                <i class="fas fa-esp32"></i> <?php echo htmlspecialchars($ud['hardware_id']); ?>
+                            </div>
+                            <div style="font-size: 0.8rem; opacity: 0.7;">
+                                <i class="fas fa-clock"></i> Última actividad: <?php echo date('H:i:s d/m/Y', strtotime($ud['last_seen'])); ?>
+                            </div>
                         </div>
-                        <div class="tariff-item-actions">
-                            <form method="POST" action="<?php echo url('settings/unlink-device'); ?>"
-                                  onsubmit="return confirm('¿Quitar acceso a este dispositivo?')">
-                                <input type="hidden" name="api_key" value="<?php echo htmlspecialchars($sd['api_key']); ?>">
-                                <button type="submit" class="btn-icon delete" title="Desvincular">
-                                    <i class="fas fa-unlink"></i>
-                                </button>
-                            </form>
-                        </div>
+                        <form method="POST" action="<?php echo url('settings/claim-device'); ?>">
+                            <input type="hidden" name="hardware_id" value="<?php echo htmlspecialchars($ud['hardware_id']); ?>">
+                            <button type="submit" class="btn-action" style="background: #22c55e; border-color: #22c55e;">
+                                <i class="fas fa-link"></i> Vincular a mi cuenta
+                            </button>
+                        </form>
                     </div>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="empty-state" style="padding:1.5rem;">
-                <i class="fas fa-share-alt"></i>
-                <h3>Sin dispositivos vinculados</h3>
-                <p>Ingresa una API Key para acceder a los datos de otro dispositivo</p>
+            <div class="empty-state" style="padding: 2rem;">
+                <div class="pulse-loader" style="margin-bottom: 1rem;"></div>
+                <h3>Buscando dispositivos...</h3>
+                <p>Asegúrate de que tu ESP32 esté encendido y enviando datos al servidor.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- ========================================
+         SECCIÓN: ACCESO COMPARTIDO (POR HARDWARE ID)
+         ======================================== -->
+    <div class="settings-section" style="margin-top: 2rem;">
+        <div class="section-header">
+            <div class="section-title-group">
+                <div class="section-icon" style="background: linear-gradient(135deg, #7c3aed, #a78bfa); color:#fff; width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h2>Acceso Compartido</h2>
+                    <p>Ver datos de otro monitor usando su Hardware ID</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-key-card" style="margin-bottom:1.5rem;">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem; opacity: 0.8;">Ingresa el Hardware ID que te compartió el propietario del dispositivo.</p>
+            <form method="POST" action="<?php echo url('settings/link-device'); ?>" style="display:flex;gap:.75rem;">
+                <input type="text" name="shared_hardware_id"
+                        placeholder="Ej: AA:BB:CC:DD:EE:FF"
+                        style="flex:1; padding:.65rem 1rem; border:1.5px solid #334155; border-radius:8px; background:#0f172a; color:#fff;"
+                        required>
+                <button type="submit" class="btn-primary" style="white-space:nowrap;">
+                    <i class="fas fa-plug"></i> Vincular Acceso
+                </button>
+            </form>
+        </div>
+
+        <?php if (!empty($sharedDevices)): ?>
+            <div class="tariff-list">
+                <?php foreach ($sharedDevices as $sd): ?>
+                    <div class="tariff-item" style="display:flex;align-items:center;gap:1rem;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;"><?php echo htmlspecialchars($sd['device_name']); ?></div>
+                            <div style="font-size:0.75rem; opacity: 0.6;">Propietario: <?php echo htmlspecialchars($sd['owner_name']); ?></div>
+                        </div>
+                        <form method="POST" action="<?php echo url('settings/unlink-device'); ?>">
+                            <input type="hidden" name="hardware_id" value="<?php echo htmlspecialchars($sd['hardware_id'] ?? ''); ?>">
+                            <button type="submit" class="btn-icon delete"><i class="fas fa-unlink"></i></button>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
     </div>
@@ -373,7 +357,17 @@ function editTariff(tariff) {
 }
 
 function copyApiKey() {
-    const text = document.getElementById('apiKeyValue').textContent;
+    const text = document.getElementById('apiKeyValue') ? document.getElementById('apiKeyValue').textContent : '';
+    if(!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+    });
+}
+
+function copyHwId() {
+    const text = document.getElementById('hwIdValue').textContent;
     navigator.clipboard.writeText(text).then(() => {
         const btn = document.querySelector('.btn-copy');
         btn.innerHTML = '<i class="fas fa-check"></i>';

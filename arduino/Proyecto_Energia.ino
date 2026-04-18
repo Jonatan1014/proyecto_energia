@@ -51,8 +51,13 @@ const char* password   = "balon100";
 
 // --- ENDPOINTS LOCALES (CAMBIAR IP Y API KEY) ---
 // Obtener la IP de la máquina donde instalaste XAMPP si usas red local
-const char* apiKey        = "667f982a2c7ad0d77788f848d2a239df857ec9dfc7b29ac66c2ec94185872d2a"; // Sacar del dashboard
-const char* webhookUrl    = "https://energia.systemautomatic.xyz/proyecto_energia/src/public/api/save";
+const char* apiKey        = "667f982a2c7ad0d77788f848d2a239df857ec9dfc7b29ac66c2ec94185872d2a"; // URL del servidor (Webhook)
+const char* webhookUrl = "http://energia.systemautomatic.xyz/proyecto_energia/src/public/api/save"; // Cambiar por tu IP real
+
+// No necesitas API key manual, el sistema usará tu MAC Address como ID único
+String getHardwareId() {
+    return WiFi.macAddress();
+}
 const char* relayCheckUrl = "https://energia.systemautomatic.xyz/proyecto_energia/src/public/api/relay-status";
 
 // --- INTERVALOS ---
@@ -446,7 +451,7 @@ void enviarDatosWebhook(float v, float c, float p, float e) {
   Serial.println("Enviando datos al Webhook...");
   http.begin(webhookUrl);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-API-KEY", apiKey); // <-- Autenticación agregada
+  http.addHeader("X-HARDWARE-ID", getHardwareId()); // Usar MAC Address como identificador
 
   String payload = "{";
   payload += "\"voltaje\":" + String(v, 1) + ",";
