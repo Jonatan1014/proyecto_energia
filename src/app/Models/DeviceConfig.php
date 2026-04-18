@@ -11,30 +11,52 @@ class DeviceConfig {
     }
 
     /**
-     * Buscar o crear un dispositivo por su Hardware ID (MAC)
+     * Buscar o crear un dispositivo por su Hardware ID (MAC) de forma robusta
      */
     public function findOrCreateByHardwareId($hardwareId) {
+        if (empty($hardwareId)) return null;
+        
+        $hardwareId = trim(strtoupper($hardwareId)); // Normalizar a mayúsculas
+        
         try {
-            error_log("DEBUG: findOrCreateByHardwareId searching for: " . $hardwareId);
-            $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE hardware_id = ? LIMIT 1");
+            // 1. Intentar buscar dispositivo existente
+            $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE UPPER(hardware_id) = ? LIMIT 1");
             $stmt->execute([$hardwareId]);
             $device = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$device) {
-                error_log("DEBUG: Device not found. Attempting registration for: " . $hardwareId);
-                // Si es nuevo, registrarlo como no reclamado
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO device_config (hardware_id, device_name, api_key)
-                    VALUES (?, ?, ?)
-                ");
-                $apiKey = bin2hex(random_bytes(16)); // Keep internal API key for legacy compatibility if needed
-                $stmt->execute([$hardwareId, "ESP32 ($hardwareId)", $apiKey]);
-                error_log("DEBUG: Registration success for: " . $hardwareId);
-                return $this->findOrCreateByHardwareId($hardwareId);
+            if ($device) {
+                return $device;
             }
-            return $device;
+
+            // 2. Si no existe, intentar insertarlo
+            $apiKey = bin2hex(random_bytes(16));
+            $stmt = $this->pdo->prepare("
+                INSERT INTO device_config (hardware_id, device_name, api_key, user_id)
+                VALUES (?, ?, ?, NULL)
+            ");
+            
+            $success = $stmt->execute([
+                $hardwareId, 
+                "Monitor ESP32 ($hardwareId)", 
+                $apiKey
+            ]);
+
+            if ($success) {
+                // Devolver el dispositivo recién creado
+                $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE hardware_id = ? LIMIT 1");
+                $stmt->execute([$hardwareId]);
+                return $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+
+            return null;
         } catch (Exception $e) {
-            error_log("DEBUG ERROR in findOrCreateByHardwareId: " . $e->getMessage());
+            error_log("CRITICAL ERROR in findOrCreateByHardwareId: " . $e->getMessage());
+            // Si el error es por duplicado (otra carrera), intentar buscar de nuevo
+            if (strpos($e->getMessage(), '1062') !== false) {
+                 $stmt = $this->pdo->prepare("SELECT * FROM device_config WHERE hardware_id = ? LIMIT 1");
+                 $stmt->execute([$hardwareId]);
+                 return $stmt->fetch(PDO::FETCH_ASSOC);
+            }
             return null;
         }
     }

@@ -21,11 +21,14 @@ class EnergyService {
      */
     public function saveReading($hardwareId, $data) {
         // Buscar por Hardware ID (MAC)
-        // Si no existe, lo crea automáticamente sin dueño
+        // 1. Identificar el dispositivo por hardware_id
         $device = $this->deviceConfig->findOrCreateByHardwareId($hardwareId);
         
         if (!$device) {
-            return ['success' => false, 'message' => 'Dispositivo no reconocido'];
+            return [
+                'success' => false, 
+                'message' => "Dispositivo [$hardwareId] no pudo ser registrado o encontrado"
+            ];
         }
 
         // Preparar datos
