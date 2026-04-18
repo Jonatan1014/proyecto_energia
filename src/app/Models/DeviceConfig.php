@@ -134,7 +134,14 @@ class DeviceConfig {
     }
 
     /**
-     * Obtener el dispositivo principal del usuario (retrocompatibilidad)
+     * Obtener dispositivos vinculados (para retrocompatibilidad en vistas)
+     */
+    public function getSharedDevicesByUser($userId) {
+        return $this->getDevicesByUser($userId);
+    }
+
+    /**
+     * Obtener el dispositivo principal de un usuario (retrocompatibilidad)
      */
     public function getByUser($userId) {
         try {
@@ -172,9 +179,6 @@ class DeviceConfig {
         }
     }
 
-    /**
-     * Obtener el consumo promedio por hora del día (0-23)
-     */
     public function getUsageByHourOfDay($userId) {
         try {
             $stmt = $this->pdo->prepare("
@@ -192,6 +196,18 @@ class DeviceConfig {
         } catch (Exception $e) {
             error_log("Error getting usage by hour: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Actualizar last_seen del dispositivo por hardware_id
+     */
+    public function updateLastSeenByHardware($hardwareId) {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE device_config SET last_seen = NOW() WHERE hardware_id = ?");
+            $stmt->execute([$hardwareId]);
+        } catch (Exception $e) {
+            error_log("Error updating last seen by hardware: " . $e->getMessage());
         }
     }
 }

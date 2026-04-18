@@ -269,11 +269,9 @@ class EnergyData {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
-                    DATE(er.timestamp) as fecha,
-                    ROUND(AVG(er.voltage), 1) as avg_voltage,
-                    ROUND(AVG(er.current_val), 3) as avg_current,
-                    ROUND(SUM(e_diff), 4) as daily_energy,
-                    ROUND(AVG(a_power), 1) as avg_power
+                    er.f as fecha,
+                    ROUND(SUM(er.e_diff), 4) as daily_energy,
+                    ROUND(AVG(er.a_power), 1) as avg_power
                 FROM (
                     SELECT 
                         hardware_id,
