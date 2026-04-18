@@ -3,14 +3,14 @@
 
 require_once __DIR__ . '/../Services/AuthService.php';
 require_once __DIR__ . '/../Models/User.php';
-require_once __DIR__ . '/../Models/Alerta.php';
 
 class PerfilController {
 
     public function index() {
         AuthService::requireLogin();
         $userId = AuthService::getUserId();
-        $alertasNoLeidas = Alerta::countNoLeidas($userId);
+        
+        // Obtener usuario completo
         $user = User::findById($userId);
 
         include __DIR__ . '/../Views/perfil.php';
@@ -24,29 +24,7 @@ class PerfilController {
         $data = [
             'nombre' => trim($_POST['nombre'] ?? ''),
             'apellido' => trim($_POST['apellido'] ?? ''),
-            'telefono' => trim($_POST['telefono'] ?? ''),
-            'edad' => intval($_POST['edad'] ?? 0),
-            'moneda' => $_POST['moneda'] ?? 'COP',
-            'ingreso_mensual' => floatval(str_replace(['.', ','], ['', '.'], $_POST['ingreso_mensual'] ?? 0)),
-            'dia_pago' => intval($_POST['dia_pago'] ?? 1),
-            'porcentaje_ahorro' => intval($_POST['porcentaje_ahorro'] ?? 20),
         ];
-
-        // Manejar foto
-        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../../public/uploads/profiles/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-
-            $ext = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-            $filename = 'profile_' . $userId . '_' . time() . '.' . $ext;
-            $filepath = $uploadDir . $filename;
-
-            if (move_uploaded_file($_FILES['foto']['tmp_name'], $filepath)) {
-                User::updateFoto($userId, 'uploads/profiles/' . $filename);
-            }
-        }
 
         User::updateProfile($userId, $data);
         AuthService::refreshSession();

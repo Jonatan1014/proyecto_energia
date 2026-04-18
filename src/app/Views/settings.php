@@ -182,6 +182,93 @@ http.addHeader("X-API-KEY", "<?php echo $device['api_key'] ?? 'TU_API_KEY'; ?>")
             </div>
         </div>
     </div>
+
+    <!-- ========================================
+         SECCIÓN: ACCESO COMPARTIDO
+         Permite ingresar la API key de otro dispositivo
+         para ver sus datos en tiempo real.
+         ======================================== -->
+    <div class="settings-section">
+        <div class="section-header">
+            <div class="section-title-group">
+                <div class="section-icon" style="background: linear-gradient(135deg, #7c3aed, #a78bfa); color:#fff; width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-share-alt"></i>
+                </div>
+                <div>
+                    <h2>Acceso Compartido</h2>
+                    <p>Vincula la API Key de otro dispositivo para ver sus datos en tiempo real</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario para vincular nuevo dispositivo -->
+        <div class="api-key-card" style="margin-bottom:1.5rem;">
+            <div class="api-key-header">
+                <h3><i class="fas fa-link"></i> Vincular Dispositivo</h3>
+                <span class="api-key-hint">Ingresa la API Key que te compartió el propietario del dispositivo</span>
+            </div>
+            <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div style="background:#fee2e2;border:1px solid #f87171;color:#991b1b;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem;">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div style="background:#d1fae5;border:1px solid #34d399;color:#065f46;padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem;">
+                    <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+                </div>
+            <?php endif; ?>
+            <form method="POST" action="<?php echo url('settings/link-device'); ?>" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+                <input type="text" name="shared_api_key"
+                       placeholder="Ej: 667f982a2c7ad0d77788f848..."
+                       style="flex:1;min-width:200px;padding:.65rem 1rem;border:1.5px solid var(--border-color,#334155);border-radius:8px;background:var(--input-bg,#0f172a);color:inherit;font-family:monospace;font-size:.85rem;"
+                       required>
+                <button type="submit" class="btn-primary" style="white-space:nowrap;">
+                    <i class="fas fa-plug"></i> Vincular
+                </button>
+            </form>
+        </div>
+
+        <!-- Lista de dispositivos compartidos vinculados -->
+        <?php if (!empty($sharedDevices)): ?>
+            <div class="tariff-list">
+                <h3 class="list-title">Dispositivos Vinculados</h3>
+                <?php foreach ($sharedDevices as $sd): ?>
+                    <?php
+                        $lsTime = $sd['last_seen'] ? strtotime($sd['last_seen']) : null;
+                        $isOnline = $lsTime && (time() - $lsTime < 30);
+                    ?>
+                    <div class="tariff-item" style="display:flex;align-items:center;gap:1rem;">
+                        <span style="width:10px;height:10px;border-radius:50%;background:<?php echo $isOnline ? '#22c55e' : '#ef4444'; ?>;flex-shrink:0;"></span>
+                        <div class="tariff-item-info" style="flex:1;">
+                            <span class="tariff-item-name"><?php echo htmlspecialchars($sd['device_name']); ?></span>
+                            <span class="tariff-item-rate" style="font-size:.78rem;">
+                                Propietario: <?php echo htmlspecialchars($sd['owner_name'] . ' &lt;' . $sd['owner_email'] . '&gt;'); ?>
+                            </span>
+                            <span class="tariff-item-rate" style="font-size:.75rem;opacity:.6;">
+                                <?php echo $isOnline ? '<i class="fas fa-circle" style="color:#22c55e"></i> En línea' : ($lsTime ? 'Última vez: ' . date('d/m/Y H:i', $lsTime) : 'Sin conexión'); ?>
+                            </span>
+                        </div>
+                        <div class="tariff-item-actions">
+                            <form method="POST" action="<?php echo url('settings/unlink-device'); ?>"
+                                  onsubmit="return confirm('¿Quitar acceso a este dispositivo?')">
+                                <input type="hidden" name="api_key" value="<?php echo htmlspecialchars($sd['api_key']); ?>">
+                                <button type="submit" class="btn-icon delete" title="Desvincular">
+                                    <i class="fas fa-unlink"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state" style="padding:1.5rem;">
+                <i class="fas fa-share-alt"></i>
+                <h3>Sin dispositivos vinculados</h3>
+                <p>Ingresa una API Key para acceder a los datos de otro dispositivo</p>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Modal: Nueva Tarifa -->

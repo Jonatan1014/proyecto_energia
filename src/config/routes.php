@@ -15,6 +15,7 @@ return [
     // DASHBOARD PRINCIPAL
     // ========================================
     '/dashboard'     => ['controller' => 'DashboardController', 'action' => 'index'],
+    '/reports'       => ['controller' => 'ReportController',    'action' => 'index'],
 
     // ========================================
     // CONFIGURACIONES (Tarifas + Dispositivo)
@@ -25,6 +26,8 @@ return [
     '/tariffs/delete'       => ['controller' => 'TariffController',   'action' => 'delete'],
     '/settings/device'      => ['controller' => 'SettingsController', 'action' => 'updateDevice'],
     '/settings/regenerate-key' => ['controller' => 'SettingsController', 'action' => 'regenerateKey'],
+    '/settings/link-device'  => ['controller' => 'SettingsController', 'action' => 'linkDevice'],
+    '/settings/unlink-device'=> ['controller' => 'SettingsController', 'action' => 'unlinkDevice'],
 
     // ========================================
     // PERFIL

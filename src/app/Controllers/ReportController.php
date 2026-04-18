@@ -2,6 +2,7 @@
 // src/app/Controllers/ReportController.php
 
 require_once __DIR__ . '/../Services/EnergyService.php';
+require_once __DIR__ . '/../Services/AuthService.php';
 
 class ReportController {
     private $energyService;
@@ -10,17 +11,38 @@ class ReportController {
         $this->energyService = new EnergyService();
     }
 
-    public function index($request, $response) {
-        $params = $request->getQueryParams();
-        $startDate = $params['start'] ?? date('Y-m-d', strtotime('-7 days'));
-        $endDate = $params['end'] ?? date('Y-m-d');
-        $reports = $this->energyService->getHistoricalReports($startDate . ' 00:00:00', $endDate . ' 23:59:59');
+    /**
+     * GET /reports - Página de reportes históricos y análisis de picos
+     */
+    public function index() {
+        AuthService::requireLogin();
+        $userId = AuthService::getUserId();
+        
+        // Parámetros de filtro
+        $startDate = $_GET['start'] ?? date('Y-m-01'); // Primer día del mes
+        $endDate   = $_GET['end']   ?? date('Y-m-d');
+        
+        // Obtener historial diario en el rango
+        $historical = $this->energyService->getConsumptionReport($userId, $startDate, $endDate);
+        
+        // Análisis de picos (consumo por hora del día)
+        $peakHours = $this->energyService->getPeakHoursUsage($userId);
+        
+        // Identificar hora de mayor y menor consumo
+        $maxHour = ['hora' => 0, 'avg_power' => 0];
+        $minHour = ['hora' => 0, 'avg_power' => PHP_INT_MAX];
+        
+        foreach ($peakHours as $ph) {
+            if ($ph['avg_power'] > $maxHour['avg_power']) {
+                $maxHour = $ph;
+            }
+            if ($ph['avg_power'] < $minHour['avg_power']) {
+                $minHour = $ph;
+            }
+        }
+        
+        if ($minHour['avg_power'] === PHP_INT_MAX) $minHour['avg_power'] = 0;
 
-        // Pasar datos a la vista
-        ob_start();
         include __DIR__ . '/../Views/reports.php';
-        $html = ob_get_clean();
-        $response->getBody()->write($html);
-        return $response;
     }
 }

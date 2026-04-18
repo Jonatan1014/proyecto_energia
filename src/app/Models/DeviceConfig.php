@@ -125,4 +125,86 @@ class DeviceConfig {
     private function generateApiKey() {
         return bin2hex(random_bytes(32));
     }
+
+    // ==========================================================
+    // SHARED DEVICE METHODS
+    // ==========================================================
+
+    /**
+     * Vincular un dispositivo compartido al usuario actual
+     * usando la API key del propietario.
+     * Retorna: 'ok' | 'not_found' | 'already' | 'own_device' | 'error'
+     */
+    public function linkSharedDevice($guestUserId, $apiKey) {
+        try {
+            // Verificar que la API key existe y pertenece a otro usuario
+            $device = $this->validateApiKey($apiKey);
+            if (!$device) {
+                return 'not_found';
+            }
+            if ($device['user_id'] == $guestUserId) {
+                return 'own_device'; // No tiene sentido agregarse a sí mismo
+            }
+
+            // Verificar si ya está vinculado
+            $stmt = $this->pdo->prepare("
+                SELECT id FROM shared_devices 
+                WHERE guest_user_id = ? AND api_key = ? AND is_active = 1
+            ");
+            $stmt->execute([$guestUserId, $apiKey]);
+            if ($stmt->fetch()) {
+                return 'already';
+            }
+
+            // Crear vínculo
+            $stmt = $this->pdo->prepare("
+                INSERT INTO shared_devices (owner_user_id, guest_user_id, api_key)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE is_active = 1
+            ");
+            $stmt->execute([$device['user_id'], $guestUserId, $apiKey]);
+            return 'ok';
+        } catch (Exception $e) {
+            error_log("Error linking shared device: " . $e->getMessage());
+            return 'error';
+        }
+    }
+
+    /**
+     * Desvincular un dispositivo compartido del usuario actual
+     */
+    public function unlinkSharedDevice($guestUserId, $apiKey) {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE shared_devices SET is_active = 0
+                WHERE guest_user_id = ? AND api_key = ?
+            ");
+            $stmt->execute([$guestUserId, $apiKey]);
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("Error unlinking shared device: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener todos los dispositivos compartidos con un usuario invitado
+     */
+    public function getSharedDevicesByUser($guestUserId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT sd.*, dc.device_name, dc.last_seen, u.nombre as owner_name, u.email as owner_email
+                FROM shared_devices sd
+                JOIN device_config dc ON sd.api_key = dc.api_key
+                JOIN usuarios u ON sd.owner_user_id = u.id
+                WHERE sd.guest_user_id = ? AND sd.is_active = 1
+                ORDER BY sd.created_at DESC
+            ");
+            $stmt->execute([$guestUserId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting shared devices: " . $e->getMessage());
+            return [];
+        }
+    }
 }

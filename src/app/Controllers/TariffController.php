@@ -33,6 +33,9 @@ class TariffController {
             $device = $deviceConfig->getByUser($userId);
         }
 
+        // Dispositivos compartidos con este usuario (como invitado)
+        $sharedDevices = $deviceConfig->getSharedDevicesByUser($userId);
+
         include __DIR__ . '/../Views/settings.php';
     }
 

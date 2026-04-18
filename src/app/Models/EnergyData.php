@@ -17,14 +17,15 @@ class EnergyData {
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO energy_readings 
-                    (user_id, voltage, current_val, power, energy, frequency, power_factor, pulse_count, relay_status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (user_id, voltage, current_val, power, reactive_power, energy, frequency, power_factor, pulse_count, relay_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             return $stmt->execute([
                 $data['user_id'] ?? null,
                 $data['voltage'],
                 $data['current'],
                 $data['power'],
+                $data['reactive_power'] ?? 0,
                 $data['energy'],
                 $data['frequency'] ?? null,
                 $data['power_factor'] ?? null,
@@ -199,7 +200,7 @@ class EnergyData {
     public function getRealtimeReadings($userId, $count = 20) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT voltage, current_val, power, energy, frequency, 
+                SELECT voltage, current_val, power, reactive_power, energy, frequency, 
                        power_factor, relay_status, timestamp
                 FROM energy_readings
                 WHERE user_id = ?
@@ -220,6 +221,54 @@ class EnergyData {
      */
     public function calculateCost($energy, $rate) {
         return round($energy * $rate, 2);
+    }
+
+    /**
+     * Obtener el consumo promedio por hora del día (0-23) para análisis de picos
+     */
+    public function getUsageByHourOfDay($userId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    HOUR(timestamp) as hora,
+                    ROUND(AVG(power), 1) as avg_power
+                FROM energy_readings
+                WHERE user_id = ?
+                GROUP BY hora
+                ORDER BY hora ASC
+            ");
+            $stmt->execute([$userId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting usage by hour: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Obtener datos agrupados por día en un rango de fechas específico
+     */
+    public function getRangeData($userId, $startDate, $endDate) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    DATE(timestamp) as fecha,
+                    ROUND(AVG(voltage), 1) as avg_voltage,
+                    ROUND(MAX(current_val), 3) as max_current,
+                    ROUND(AVG(power), 1) as avg_power,
+                    ROUND(MAX(power), 1) as max_power,
+                    ROUND(MAX(energy) - MIN(energy), 4) as daily_energy
+                FROM energy_readings
+                WHERE user_id = ? AND DATE(timestamp) BETWEEN ? AND ?
+                GROUP BY fecha
+                ORDER BY fecha ASC
+            ");
+            $stmt->execute([$userId, $startDate, $endDate]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting range data: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**

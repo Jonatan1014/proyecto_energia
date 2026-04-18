@@ -12,13 +12,17 @@ $monthCost = floatval($stats['month']['cost'] ?? 0);
 $diffPercent = floatval($stats['today']['diff_percent'] ?? 0);
 
 // Datos actuales
-$currentVoltage = floatval($realtime['voltage'] ?? 0);
-$currentCurrent = floatval($realtime['current_val'] ?? 0);
-$currentPower   = floatval($realtime['power'] ?? 0);
-$currentEnergy  = floatval($realtime['energy'] ?? 0);
-$currentFreq    = floatval($realtime['frequency'] ?? 0);
-$currentPF      = floatval($realtime['power_factor'] ?? 0);
-$relayStatus    = $realtime['relay_status'] ?? 'OFF';
+$currentVoltage   = floatval($realtime['voltage'] ?? 0);
+$currentCurrent   = floatval($realtime['current_val'] ?? 0);
+$currentPower     = floatval($realtime['power'] ?? 0);
+$currentReactive  = floatval($realtime['reactive_power'] ?? 0); // VAR
+$currentEnergy    = floatval($realtime['energy'] ?? 0);
+$currentFreq      = floatval($realtime['frequency'] ?? 0);
+$currentPF        = floatval($realtime['power_factor'] ?? 0);
+$relayStatus      = $realtime['relay_status'] ?? 'OFF';
+
+// Costo en tiempo real estimado (COP/h con potencia actual)
+$realtimeCostHour = $rate > 0 ? round(($currentPower / 1000) * $rate, 2) : 0;
 ?>
 
 <!-- Device Status Banner -->
@@ -128,6 +132,20 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
         </div>
         <span class="stat-label">Factor de Potencia</span>
     </div>
+
+    <!-- Potencia Reactiva -->
+    <div class="stat-card" id="cardReactive">
+        <div class="stat-card-header">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#7c3aed20,#a78bfa20);">
+                <i class="fas fa-random" style="color:#a78bfa;"></i>
+            </div>
+        </div>
+        <div class="stat-value-group">
+            <span class="stat-main-value" id="valueReactive"><?php echo number_format($currentReactive, 1); ?></span>
+            <span class="stat-unit">VAR</span>
+        </div>
+        <span class="stat-label">Pot. Reactiva</span>
+    </div>
 </div>
 
 <!-- Cost Summary -->
@@ -201,6 +219,9 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
                 <button class="chart-period-btn" data-period="24h" id="btn24h">24h</button>
                 <button class="chart-period-btn" data-period="7d" id="btn7d">7d</button>
                 <button class="chart-period-btn" data-period="30d" id="btn30d">30d</button>
+                <a href="<?php echo url('reports'); ?>" class="btn-goto-reports" title="Ver Reportes Detallados">
+                    <i class="fas fa-external-link-alt"></i> Análisis Detallado
+                </a>
             </div>
         </div>
         <div class="chart-wrapper">
@@ -242,6 +263,7 @@ $relayStatus    = $realtime['relay_status'] ?? 'OFF';
         realtime: <?php echo json_encode($realtimeReadings); ?>,
         chartData: <?php echo json_encode($chartData); ?>,
         rate: <?php echo $rate; ?>,
+        realtimeCostHour: <?php echo $realtimeCostHour; ?>,
         deviceOnline: <?php echo ($device['online'] ?? false) ? 'true' : 'false'; ?>
     };
 </script>

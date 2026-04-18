@@ -23,6 +23,10 @@ $sidebarUser = isset($user) ? $user : ($_SESSION['user'] ?? null);
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
+            <a href="<?php echo url('reports'); ?>" class="nav-link <?php echo strpos($currentPath, 'reports') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-chart-line"></i>
+                <span>Reportes</span>
+            </a>
         </div>
 
         <div class="nav-section">

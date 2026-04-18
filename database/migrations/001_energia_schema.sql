@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS energy_readings (
     user_id         INT DEFAULT NULL,
     voltage         DECIMAL(8,2) NOT NULL COMMENT 'Voltaje en V',
     current_val     DECIMAL(10,4) NOT NULL COMMENT 'Corriente en A',
-    power           DECIMAL(10,2) NOT NULL COMMENT 'Potencia en W',
+    power           DECIMAL(10,2) NOT NULL COMMENT 'Potencia activa en W',
+    reactive_power  DECIMAL(10,2) DEFAULT 0 COMMENT 'Potencia reactiva en VAR (calculada: S*sen(acos(PF)))',
     energy          DECIMAL(12,4) NOT NULL COMMENT 'Energía acumulada en kWh',
     frequency       DECIMAL(6,2) DEFAULT NULL COMMENT 'Frecuencia en Hz',
     power_factor    DECIMAL(4,2) DEFAULT NULL COMMENT 'Factor de potencia (0-1)',
@@ -107,6 +108,32 @@ CREATE TABLE IF NOT EXISTS device_config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- TABLA: shared_devices
+-- Permite que varios usuarios compartan el mismo
+-- dispositivo (misma API key) para ver los mismos datos
+-- en tiempo real. El propietario puede invitar a otros
+-- usuarios con solo proporcionarles su API key.
+-- =====================================================
+CREATE TABLE IF NOT EXISTS shared_devices (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    owner_user_id   INT NOT NULL COMMENT 'Usuario propietario del dispositivo',
+    guest_user_id   INT NOT NULL COMMENT 'Usuario invitado con acceso de lectura',
+    api_key         VARCHAR(64) NOT NULL COMMENT 'API key del dispositivo compartido',
+    can_control     TINYINT(1) DEFAULT 0 COMMENT '1 = puede controlar relay, 0 = solo lectura',
+    is_active       TINYINT(1) DEFAULT 1,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE INDEX idx_guest_apikey (guest_user_id, api_key),
+    INDEX idx_owner (owner_user_id),
+    INDEX idx_apikey (api_key),
+
+    CONSTRAINT fk_shared_owner FOREIGN KEY (owner_user_id)
+        REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_shared_guest FOREIGN KEY (guest_user_id)
+        REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- TABLA: alerts
 -- Alertas de consumo y eventos del sistema
 -- =====================================================
@@ -151,5 +178,34 @@ CREATE TABLE IF NOT EXISTS energy_daily_summary (
     UNIQUE INDEX idx_user_date (user_id, date),
 
     CONSTRAINT fk_summary_user FOREIGN KEY (user_id)
+        REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- MIGRACIONES: Columnas nuevas para bases de datos
+-- existentes (se ignoran si ya existen)
+-- =====================================================
+
+-- Potencia reactiva en energy_readings
+ALTER TABLE energy_readings 
+    ADD COLUMN IF NOT EXISTS reactive_power DECIMAL(10,2) DEFAULT 0 
+    COMMENT 'Potencia reactiva en VAR (calculada: S*sen(acos(PF)))' 
+    AFTER power;
+
+-- Tabla de dispositivos compartidos (en caso de que ya exista la BD)
+CREATE TABLE IF NOT EXISTS shared_devices (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    owner_user_id   INT NOT NULL,
+    guest_user_id   INT NOT NULL,
+    api_key         VARCHAR(64) NOT NULL,
+    can_control     TINYINT(1) DEFAULT 0,
+    is_active       TINYINT(1) DEFAULT 1,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_guest_apikey (guest_user_id, api_key),
+    INDEX idx_owner (owner_user_id),
+    INDEX idx_apikey (api_key),
+    CONSTRAINT fk_shared_owner2 FOREIGN KEY (owner_user_id)
+        REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_shared_guest2 FOREIGN KEY (guest_user_id)
         REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

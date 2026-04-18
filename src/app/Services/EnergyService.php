@@ -27,16 +27,29 @@ class EnergyService {
         }
 
         // Preparar datos
+        $voltage      = floatval($data['voltaje'] ?? $data['voltage'] ?? 0);
+        $current      = floatval($data['corriente'] ?? $data['current'] ?? 0);
+        $power        = floatval($data['potencia'] ?? $data['power'] ?? 0);
+        $powerFactor  = floatval($data['factor_potencia'] ?? $data['power_factor'] ?? 0);
+
+        // Potencia aparente S = V * I
+        $apparentPower = $voltage * $current;
+        // Potencia reactiva Q = sqrt(S² - P²)  (en VAR)
+        $reactivePower = ($apparentPower > $power)
+            ? sqrt(max(0, ($apparentPower * $apparentPower) - ($power * $power)))
+            : 0;
+
         $readingData = [
-            'user_id'       => $device['user_id'],
-            'voltage'       => floatval($data['voltaje'] ?? $data['voltage'] ?? 0),
-            'current'       => floatval($data['corriente'] ?? $data['current'] ?? 0),
-            'power'         => floatval($data['potencia'] ?? $data['power'] ?? 0),
-            'energy'        => floatval($data['energia'] ?? $data['energy'] ?? 0),
-            'frequency'     => floatval($data['frecuencia'] ?? $data['frequency'] ?? 0),
-            'power_factor'  => floatval($data['factor_potencia'] ?? $data['power_factor'] ?? 0),
-            'pulse_count'   => intval($data['pulsos_cf'] ?? $data['pulse_count'] ?? 0),
-            'relay_status'  => strtoupper($data['relay_estado'] ?? $data['relay_status'] ?? 'OFF'),
+            'user_id'        => $device['user_id'],
+            'voltage'        => $voltage,
+            'current'        => $current,
+            'power'          => $power,
+            'reactive_power' => round($reactivePower, 2),
+            'energy'         => floatval($data['energia'] ?? $data['energy'] ?? 0),
+            'frequency'      => floatval($data['frecuencia'] ?? $data['frequency'] ?? 0),
+            'power_factor'   => $powerFactor,
+            'pulse_count'    => intval($data['pulsos_cf'] ?? $data['pulse_count'] ?? 0),
+            'relay_status'   => strtoupper($data['relay_estado'] ?? $data['relay_status'] ?? 'OFF'),
         ];
 
         // Validar datos
@@ -179,6 +192,83 @@ class EnergyService {
             return null;
         }
         return $device['relay_default']; // Retorna 'ON' o 'OFF'
+    }
+
+    /**
+     * Vincular un dispositivo compartido al usuario actual usando su API key.
+     * El usuario podrá ver los mismos datos en tiempo real que el propietario.
+     */
+    public function linkSharedDevice($userId, $apiKey) {
+        return $this->deviceConfig->linkSharedDevice($userId, $apiKey);
+    }
+
+    /**
+     * Desvincular un dispositivo compartido
+     */
+    public function unlinkSharedDevice($userId, $apiKey) {
+        return $this->deviceConfig->unlinkSharedDevice($userId, $apiKey);
+    }
+
+    /**
+     * Obtener dispositivos compartidos con el usuario
+     */
+    public function getSharedDevices($userId) {
+        return $this->deviceConfig->getSharedDevicesByUser($userId);
+    }
+
+    /**
+     * Obtener datos en tiempo real para el dashboard (propio o compartido)
+     */
+    public function getRealTimeDataFull($userId) {
+        // 1. Intentar datos propios
+        $latest = $this->energyData->getLatestReading($userId);
+
+        // 2. Si no hay datos propios, buscar en dispositivos compartidos
+        if (!$latest) {
+            $shared = $this->deviceConfig->getSharedDevicesByUser($userId);
+            foreach ($shared as $s) {
+                $device = $this->deviceConfig->validateApiKey($s['api_key']);
+                if ($device) {
+                    $latest = $this->energyData->getLatestReading($device['user_id']);
+                    if ($latest) break;
+                }
+            }
+        }
+
+        if ($latest) {
+            $activeTariff = $this->tariff->getActive($userId);
+            $rate = $activeTariff ? floatval($activeTariff['rate_per_kwh']) : 0;
+            $latest['cost'] = $this->energyData->calculateCost($latest['energy'], $rate);
+            $latest['rate_per_kwh'] = $rate;
+            $latest['tariff_name'] = $activeTariff['name'] ?? 'Sin tarifa';
+
+            // Costo en tiempo real: potencia activa estimada en pesos/hora
+            $powerKW = ($latest['power'] ?? 0) / 1000;
+            $latest['realtime_cost_hour'] = round($powerKW * $rate, 2);
+        }
+
+        return $latest;
+    }
+
+    /**
+     * Obtener el consumo promedio por hora del día para identificar picos
+     */
+    public function getPeakHoursUsage($userId) {
+        return $this->energyData->getUsageByHourOfDay($userId);
+    }
+
+    /**
+     * Obtener reporte de consumo entre fechas
+     */
+    public function getConsumptionReport($userId, $start, $end) {
+        $data = $this->energyData->getRangeData($userId, $start, $end);
+        $activeTariff = $this->tariff->getActive($userId);
+        $rate = $activeTariff ? floatval($activeTariff['rate_per_kwh']) : 0;
+
+        foreach ($data as &$day) {
+            $day['cost'] = $this->energyData->calculateCost($day['daily_energy'], $rate);
+        }
+        return $data;
     }
 
     /**
