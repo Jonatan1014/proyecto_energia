@@ -20,8 +20,6 @@ class Alcancia {
                 moneda CHAR(3) NOT NULL DEFAULT \'COP\',
                 total_ahorrado DECIMAL(12,2) NOT NULL DEFAULT 0,
                 meta_general DECIMAL(12,2) NOT NULL DEFAULT 100000,
-                session_usuario_id INT UNSIGNED NULL DEFAULT NULL,
-                session_vence_at DATETIME NULL DEFAULT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB'
@@ -32,7 +30,6 @@ class Alcancia {
             'CREATE TABLE IF NOT EXISTS alcancia_metas (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
-                usuario_id INT UNSIGNED NULL DEFAULT NULL,
                 nombre VARCHAR(120) NOT NULL,
                 descripcion VARCHAR(255) NULL,
                 monto_objetivo DECIMAL(12,2) NOT NULL,
@@ -43,12 +40,13 @@ class Alcancia {
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 CONSTRAINT fk_metas_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
-                INDEX idx_metas_activas (alcancia_id, activa, prioridad),
-                INDEX idx_metas_usuario (usuario_id)
+                INDEX idx_metas_activas (alcancia_id, activa, prioridad)
             ) ENGINE=InnoDB'
         );
-        // ... rest of tables (depositos, retiros) stay similar but ensure they exist
-        $this->db->exec('CREATE TABLE IF NOT EXISTS alcancia_depositos (
+
+        // Depositos enviados por ESP32
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS alcancia_depositos (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
                 monto DECIMAL(12,2) NOT NULL,
@@ -58,10 +56,15 @@ class Alcancia {
                 sync_batch TINYINT(1) NOT NULL DEFAULT 0,
                 metadata JSON NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_depositos_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB');
-        
-        $this->db->exec('CREATE TABLE IF NOT EXISTS alcancia_retiros (
+                CONSTRAINT fk_depositos_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+                INDEX idx_depositos_fecha (alcancia_id, created_at),
+                INDEX idx_depositos_origen (origen)
+            ) ENGINE=InnoDB'
+        );
+
+        // Historial de retiros / vaciados
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS alcancia_retiros (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
                 monto_retirado DECIMAL(12,2) NOT NULL,
@@ -69,8 +72,11 @@ class Alcancia {
                 usuario_nombre VARCHAR(150) NOT NULL,
                 motivo VARCHAR(255) NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_retiros_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB');
+                CONSTRAINT fk_retiros_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+                INDEX idx_retiros_fecha (alcancia_id, created_at),
+                INDEX idx_retiros_usuario (usuario_id)
+            ) ENGINE=InnoDB'
+        );
     }
 
     public function ensureConfig(): array {
@@ -112,15 +118,7 @@ class Alcancia {
 
         $this->db->beginTransaction();
         try {
-            $config = $this->ensureConfig();
-
-            // Verificar si hay una sesion de usuario activa
-            $userIdSession = null;
-            if (!empty($config['session_usuario_id']) && !empty($config['session_vence_at'])) {
-                if (strtotime($config['session_vence_at']) > time()) {
-                    $userIdSession = (int)$config['session_usuario_id'];
-                }
-            }
+            $this->ensureConfig();
 
             $stmtInsert = $this->db->prepare(
                 'INSERT INTO alcancia_depositos (alcancia_id, monto, pulsos, origen, referencia, sync_batch, metadata) VALUES (1, ?, ?, ?, ?, ?, ?)'
@@ -138,44 +136,26 @@ class Alcancia {
                 ->execute([$monto]);
 
             $restante = $monto;
-            
-            // Prioridad 1: Si hay sesion de usuario, asignar a sus metas personales
-            if ($userIdSession !== null) {
-                $stmtMetasPers = $this->db->prepare(
-                    'SELECT id, monto_objetivo, monto_actual FROM alcancia_metas 
-                     WHERE alcancia_id = 1 AND usuario_id = ? AND activa = 1 AND monto_actual < monto_objetivo 
-                     ORDER BY prioridad ASC, id ASC'
-                );
-                $stmtMetasPers->execute([$userIdSession]);
-                $metasPers = $stmtMetasPers->fetchAll();
+            $stmtMetas = $this->db->query(
+                'SELECT id, monto_objetivo, monto_actual FROM alcancia_metas WHERE alcancia_id = 1 AND activa = 1 AND monto_actual < monto_objetivo ORDER BY prioridad ASC, id ASC'
+            );
+            $metas = $stmtMetas->fetchAll();
 
-                foreach ($metasPers as $meta) {
-                    if ($restante <= 0) break;
-                    $faltante = max(0, (float)$meta['monto_objetivo'] - (float)$meta['monto_actual']);
-                    $asignado = min($restante, $faltante);
-                    $this->db->prepare('UPDATE alcancia_metas SET monto_actual = monto_actual + ?, updated_at = NOW() WHERE id = ?')
-                        ->execute([$asignado, $meta['id']]);
-                    $restante -= $asignado;
+            foreach ($metas as $meta) {
+                if ($restante <= 0) {
+                    break;
                 }
-            }
 
-            // Prioridad 2: Metas generales (usuario_id IS NULL)
-            if ($restante > 0) {
-                $stmtMetasGen = $this->db->query(
-                    'SELECT id, monto_objetivo, monto_actual FROM alcancia_metas 
-                     WHERE alcancia_id = 1 AND usuario_id IS NULL AND activa = 1 AND monto_actual < monto_objetivo 
-                     ORDER BY prioridad ASC, id ASC'
-                );
-                $metasGen = $stmtMetasGen->fetchAll();
-
-                foreach ($metasGen as $meta) {
-                    if ($restante <= 0) break;
-                    $faltante = max(0, (float)$meta['monto_objetivo'] - (float)$meta['monto_actual']);
-                    $asignado = min($restante, $faltante);
-                    $this->db->prepare('UPDATE alcancia_metas SET monto_actual = monto_actual + ?, updated_at = NOW() WHERE id = ?')
-                        ->execute([$asignado, $meta['id']]);
-                    $restante -= $asignado;
+                $faltante = max(0, (float)$meta['monto_objetivo'] - (float)$meta['monto_actual']);
+                if ($faltante <= 0) {
+                    continue;
                 }
+
+                $asignado = min($restante, $faltante);
+                $this->db->prepare('UPDATE alcancia_metas SET monto_actual = monto_actual + ?, updated_at = NOW() WHERE id = ?')
+                    ->execute([$asignado, $meta['id']]);
+
+                $restante -= $asignado;
             }
 
             $this->db->commit();
@@ -246,8 +226,6 @@ class Alcancia {
                 'total_ahorrado' => $totalAhorrado,
                 'meta_general' => $metaGeneral,
                 'avance_general_porcentaje' => $avanceGeneral,
-                'session_usuario_id' => $config['session_usuario_id'] ? (int)$config['session_usuario_id'] : null,
-                'session_vence_at' => $config['session_vence_at'],
                 'updated_at' => $config['updated_at'] ?? null,
             ],
             'metas' => $metas,
@@ -386,44 +364,8 @@ class Alcancia {
         }
     }
 
-    public function iniciarSesionPersonal(int $usuarioId, int $segundos): array {
-        if ($usuarioId <= 0 || $segundos <= 0) {
-            throw new InvalidArgumentException('Datos de sesion invalidos');
-        }
-
-        $venceAt = date('Y-m-d H:i:s', time() + $segundos);
-        
-        $this->db->prepare('UPDATE alcancia_config SET session_usuario_id = ?, session_vence_at = ?, updated_at = NOW() WHERE id = 1')
-            ->execute([$usuarioId, $venceAt]);
-
-        return $this->getEstado(10);
-    }
-
-    public function crearMetaPersonal(int $usuarioId, string $nombre, float $montoObjetivo): array {
-        if ($usuarioId <= 0) throw new InvalidArgumentException('Usuario invalido');
-        $nombre = trim($nombre);
-        if ($nombre === '') throw new InvalidArgumentException('El nombre es obligatorio');
-        if ($montoObjetivo <= 0) throw new InvalidArgumentException('El monto debe ser mayor a 0');
-
-        $stmt = $this->db->prepare(
-            'INSERT INTO alcancia_metas (alcancia_id, usuario_id, nombre, monto_objetivo, activa, prioridad) 
-             VALUES (1, ?, ?, ?, 1, 1)'
-        );
-        $stmt->execute([$usuarioId, $nombre, $montoObjetivo]);
-
-        return $this->getEstado(10);
-    }
-
-    public function obtenerMetasPersonales(int $usuarioId): array {
-        $stmt = $this->db->prepare('SELECT * FROM alcancia_metas WHERE usuario_id = ? ORDER BY id DESC');
-        $stmt->execute([$usuarioId]);
-        return $stmt->fetchAll();
-    }
-
     public function getEstadoDispositivo(): array {
-        // ... (existing logic)
         $estado = $this->getEstado(1);
-        // ... rest stays same
         $metas = $estado['metas'] ?? [];
 
         $metaPrincipal = null;
@@ -445,8 +387,6 @@ class Alcancia {
             'meta_nombre' => (string)($metaPrincipal['nombre'] ?? 'Meta General'),
             'meta_actual' => (float)($metaPrincipal['monto_actual'] ?? 0),
             'meta_objetivo' => (float)($metaPrincipal['monto_objetivo'] ?? ($estado['alcancia']['meta_general'] ?? 0)),
-            'session_usuario' => $estado['alcancia']['session_usuario_id'],
-            'session_vence' => $estado['alcancia']['session_vence_at'],
             'ultima_actualizacion' => (string)($estado['alcancia']['updated_at'] ?? date('Y-m-d H:i:s')),
         ];
     }

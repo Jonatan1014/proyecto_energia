@@ -201,53 +201,6 @@ class AlcanciaApiController {
         }
     }
 
-    public function iniciarSesionPersonal(): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
-            return;
-        }
-
-        if (!AuthService::isLoggedIn()) {
-            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
-            return;
-        }
-
-        $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
-        $segundos = (int)($payload['segundos'] ?? 0);
-        $userId = AuthService::getUserId();
-
-        try {
-            $estado = $this->alcanciaModel->iniciarSesionPersonal($userId, $segundos);
-            $this->jsonResponse(['ok' => true, 'message' => 'Sesion personal iniciada', 'data' => $estado]);
-        } catch (Throwable $e) {
-            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function crearMetaPersonal(): void {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
-            return;
-        }
-
-        if (!AuthService::isLoggedIn()) {
-            $this->jsonResponse(['error' => self::MSG_NO_AUTORIZADO], 401);
-            return;
-        }
-
-        $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
-        $nombre = (string)($payload['nombre'] ?? '');
-        $monto = (float)($payload['monto'] ?? 0);
-        $userId = AuthService::getUserId();
-
-        try {
-            $estado = $this->alcanciaModel->crearMetaPersonal($userId, $nombre, $monto);
-            $this->jsonResponse(['ok' => true, 'message' => 'Meta personal creada', 'data' => $estado]);
-        } catch (Throwable $e) {
-            $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
-        }
-    }
-
     public function vaciar(): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => self::MSG_METODO_NO_PERMITIDO], 405);
@@ -276,7 +229,7 @@ class AlcanciaApiController {
 
             $this->jsonResponse([
                 'ok' => true,
-                'message' => 'Dinero retirado correctamente',
+                'message' => 'Alcancia vaciada correctamente',
                 'data' => $estado,
             ], 200);
         } catch (InvalidArgumentException $e) {
