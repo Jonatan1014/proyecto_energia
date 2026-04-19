@@ -122,3 +122,12 @@ VALUES
 	(1, 'Meta General', 'Objetivo principal de ahorro', 100000, 0, 1, 1, NULL)
 ON DUPLICATE KEY UPDATE id = id;
 
+
+-- Soporte para sesiones de ahorro personal temporizadas
+ALTER TABLE alcancia_config 
+ADD COLUMN session_usuario_id INT UNSIGNED NULL DEFAULT NULL,
+ADD COLUMN session_vence_at DATETIME NULL DEFAULT NULL;
+
+ALTER TABLE alcancia_metas
+ADD COLUMN usuario_id INT UNSIGNED NULL DEFAULT NULL AFTER alcancia_id,
+ADD INDEX idx_metas_usuario (usuario_id);
