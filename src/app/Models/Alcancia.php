@@ -8,10 +8,61 @@ class Alcancia {
 
     public function __construct() {
         $this->db = Database::getConnection();
-        $this->ensureRetirosTable();
+        $this->ensureTables();
     }
 
-    private function ensureRetirosTable(): void {
+    private function ensureTables(): void {
+        // Configuracion unica de la alcancia
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS alcancia_config (
+                id TINYINT UNSIGNED PRIMARY KEY,
+                nombre VARCHAR(120) NOT NULL DEFAULT \'Alcancia Principal\',
+                moneda CHAR(3) NOT NULL DEFAULT \'COP\',
+                total_ahorrado DECIMAL(12,2) NOT NULL DEFAULT 0,
+                meta_general DECIMAL(12,2) NOT NULL DEFAULT 100000,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB'
+        );
+
+        // Metas de ahorro
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS alcancia_metas (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                nombre VARCHAR(120) NOT NULL,
+                descripcion VARCHAR(255) NULL,
+                monto_objetivo DECIMAL(12,2) NOT NULL,
+                monto_actual DECIMAL(12,2) NOT NULL DEFAULT 0,
+                prioridad TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                activa TINYINT(1) NOT NULL DEFAULT 1,
+                fecha_objetivo DATE NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                CONSTRAINT fk_metas_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+                INDEX idx_metas_activas (alcancia_id, activa, prioridad)
+            ) ENGINE=InnoDB'
+        );
+
+        // Depositos enviados por ESP32
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS alcancia_depositos (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                alcancia_id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                monto DECIMAL(12,2) NOT NULL,
+                pulsos SMALLINT UNSIGNED NULL,
+                origen VARCHAR(50) NOT NULL DEFAULT \'esp32\',
+                referencia VARCHAR(120) NULL,
+                sync_batch TINYINT(1) NOT NULL DEFAULT 0,
+                metadata JSON NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_depositos_config FOREIGN KEY (alcancia_id) REFERENCES alcancia_config(id) ON DELETE CASCADE,
+                INDEX idx_depositos_fecha (alcancia_id, created_at),
+                INDEX idx_depositos_origen (origen)
+            ) ENGINE=InnoDB'
+        );
+
+        // Historial de retiros / vaciados
         $this->db->exec(
             'CREATE TABLE IF NOT EXISTS alcancia_retiros (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

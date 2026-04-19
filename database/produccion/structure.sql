@@ -110,6 +110,12 @@ ON DUPLICATE KEY UPDATE
 	password = VALUES(password),
 	is_active = VALUES(is_active);
 
+INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `telefono`, `email`, `password`, `edad`, `foto`, `moneda`, `ingreso_mensual`, `dia_pago`, `porcentaje_ahorro`, `is_active`, `last_login`, `ip_ultimo_acceso`, `created_at`, `updated_at`) VALUES
+(2, 'Andres', 'Lopez', '343535355454', 'andreslopez111103@gmail.com', '$2y$10$GPME7PM6X.QNXQAo7YzjGO/e/CV0zOlmXoAxfXaBWD0xGbvq0rFu.', 0, NULL, 'COP', 0.00, 1, 20, 1, '2026-04-19 15:10:06', '10.0.1.4', '2026-04-19 20:07:47', '2026-04-19 20:10:06'),
+(3, 'Carlos', 'Serpa', '', 'serpacarlos011@gmail.com', '$2y$10$Wz9bjTCk4wqjzlTkUXBmaO1hsc5YnasG7mTAUeVl2hcNpzEG5znbe', 0, NULL, 'COP', 0.00, 1, 20, 1, '2026-04-19 15:11:22', '10.0.1.4', '2026-04-19 20:11:13', '2026-04-19 20:11:22');
+
+
+
 -- Metas ejemplo
 INSERT INTO alcancia_metas (alcancia_id, nombre, descripcion, monto_objetivo, monto_actual, prioridad, activa, fecha_objetivo)
 VALUES
