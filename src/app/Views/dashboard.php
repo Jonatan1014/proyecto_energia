@@ -15,35 +15,7 @@
 ?>
 
 <style>
-@media (max-width: 767.98px) {
-    .dashboard-header-actions {
-        width: 100%;
-        margin-top: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .dashboard-header-actions .btn,
-    .dashboard-header-actions .badge {
-        width: 100%;
-        text-align: center;
-        padding: 0.6rem;
-    }
-
-    .table-responsive table {
-        font-size: 0.85rem;
-    }
-
-    .card-body {
-        padding: 1.25rem;
-    }
-    
-    .metric-value-text {
-        font-size: 1.8rem !important;
-    }
-}
-
+/* Estilos Globales para Componentes */
 .dashboard-card-hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -51,19 +23,56 @@
     transform: translateY(-3px);
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
 }
+.metric-value-text {
+    word-break: break-word; /* Evita desbordamientos con números grandes */
+}
+
+/* Responsividad Móvil */
+@media (max-width: 767.98px) {
+    .dashboard-header-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    .dashboard-header-actions > * {
+        width: 100%;
+        margin: 0 !important;
+        text-align: center;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0.5rem !important;
+    }
+    h1.h2 {
+        font-size: 1.5rem;
+        line-height: 1.3;
+    }
+    .card-body {
+        padding: 1.25rem 1rem;
+    }
+    .table-responsive {
+        border: 0;
+    }
+}
 </style>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
-    <div>
-        <h1 class="h2 fw-bold text-dark mb-1">Tu Alcancía <i class="bi bi-piggy-bank"></i></h1>
-        <p class="text-secondary mb-0">Monitorea tus depósitos, metas y tu progreso para alcanzar tus sueños.</p>
+<div class="row align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <div class="col-12 col-md-6 mb-3 mb-md-0 text-center text-md-start">
+        <h1 class="h3 fw-bold text-dark mb-1">Tu Alcancía <i class="bi bi-piggy-bank"></i></h1>
+        <p class="text-secondary mb-0 small">Monitorea tus depósitos, metas y progreso.</p>
     </div>
-    <div class="text-md-end dashboard-header-actions mt-3 mt-md-0">
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 rounded-pill">
-            <i class="bi bi-cash-coin me-1"></i> Moneda: <strong><?php echo htmlspecialchars($moneda); ?></strong>
-        </span>
-        <button id="btn-eliminar-registros" type="button" class="btn btn-sm btn-outline-danger ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-eraser me-1"></i> Eliminar registros</button>
-        <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-danger ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-trash3 me-1"></i> Vaciar alcancía</button>
+    <div class="col-12 col-md-6">
+        <div class="dashboard-header-actions d-flex flex-column flex-md-row justify-content-md-end align-items-md-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 rounded-pill">
+                <i class="bi bi-cash-coin me-1"></i> Moneda: <strong><?php echo htmlspecialchars($moneda); ?></strong>
+            </span>
+            <button id="btn-eliminar-registros" type="button" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3">
+                <i class="bi bi-eraser me-1"></i> Eliminar registros
+            </button>
+            <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-danger shadow-sm rounded-pill px-3">
+                <i class="bi bi-trash3 me-1"></i> Vaciar alcancía
+            </button>
+        </div>
     </div>
 </div>
 
@@ -238,33 +247,35 @@
     </div>
 </div>
 
-<div class="card mt-4 shadow-sm">
-    <div class="card-header bg-white">
-        <h5 class="mb-0">Historial de Retiros</h5>
+<div class="card mt-4 shadow-sm border-0 rounded-4">
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Historial de Retiros</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-                <thead>
+            <table class="table table-hover align-middle mb-0 border-top">
+                <thead class="table-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-3">Fecha</th>
-                        <th>Monto retirado</th>
-                        <th>Usuario</th>
-                        <th>Motivo</th>
+                        <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
+                        <th class="fw-semibold border-0">Monto retirado</th>
+                        <th class="fw-semibold border-0">Usuario</th>
+                        <th class="fw-semibold border-0 rounded-end">Motivo</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-retiros-body">
                     <?php if (empty($retiros)): ?>
                         <tr id="empty-retiros-row">
-                            <td class="ps-3 text-muted" colspan="4">Aun no hay retiros registrados.</td>
+                            <td class="text-center p-4 text-muted" colspan="4">Aún no hay retiros registrados.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($retiros as $r): ?>
                             <tr>
-                                <td class="ps-3"><?php echo htmlspecialchars($r['created_at'] ?? ''); ?></td>
-                                <td class="fw-semibold text-danger"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $r['monto_retirado'], 0, ',', '.'); ?></td>
-                                <td><?php echo htmlspecialchars($r['usuario_nombre'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($r['motivo'] ?? '-'); ?></td>
+                                <td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> <?php echo htmlspecialchars($r['created_at'] ?? ''); ?></td>
+                                <td class="fw-bold text-danger fs-6"><span class="bg-danger-subtle px-2 py-1 rounded"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $r['monto_retirado'], 0, ',', '.'); ?></span></td>
+                                <td class="small fw-semibold text-muted">
+                                    <i class="bi bi-person-circle me-1"></i> <?php echo htmlspecialchars($r['usuario_nombre'] ?? ''); ?>
+                                </td>
+                                <td class="small text-secondary"><?php echo htmlspecialchars($r['motivo'] ?? '-'); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -345,18 +356,18 @@
                             '<div class="progress" style="height: 8px;">' +
                                 '<div class="progress-bar ' + (meta.activa ? 'bg-primary' : 'bg-secondary') + '" style="width: ' + avanceMeta + '%"></div>' +
                             '</div>' +
-                            '<form class="form-editar-meta mt-3" data-meta-id="' + metaId + '">' +
+                            '<form class="form-editar-meta" data-meta-id="' + metaId + '">' +
                                 '<div class="row g-2 align-items-end">' +
-                                    '<div class="col-md-5">' +
-                                        '<label class="form-label small mb-1" for="meta-nombre-js-' + metaId + '">Nombre meta</label>' +
-                                        '<input id="meta-nombre-js-' + metaId + '" type="text" class="form-control form-control-sm" name="nombre" maxlength="120" required value="' + escapeHtml(meta.nombre || '') + '">' +
+                                    '<div class="col-12 col-sm-5">' +
+                                        '<label class="form-label text-muted small fw-bold mb-1" for="meta-nombre-js-' + metaId + '">Nombre meta</label>' +
+                                        '<input id="meta-nombre-js-' + metaId + '" type="text" class="form-control form-control-sm bg-white" name="nombre" maxlength="120" required value="' + escapeHtml(meta.nombre || '') + '">' +
                                     '</div>' +
-                                    '<div class="col-md-5">' +
-                                        '<label class="form-label small mb-1" for="meta-monto-js-' + metaId + '">Monto objetivo</label>' +
-                                        '<input id="meta-monto-js-' + metaId + '" type="number" class="form-control form-control-sm" name="monto_objetivo" min="1" step="1" required value="' + montoObjetivo + '">' +
+                                    '<div class="col-12 col-sm-5">' +
+                                        '<label class="form-label text-muted small fw-bold mb-1" for="meta-monto-js-' + metaId + '">Monto objetivo</label>' +
+                                        '<input id="meta-monto-js-' + metaId + '" type="number" class="form-control form-control-sm bg-white" name="monto_objetivo" min="1" step="1" required value="' + montoObjetivo + '">' +
                                     '</div>' +
-                                    '<div class="col-md-2 d-grid">' +
-                                        '<button type="submit" class="btn btn-sm btn-primary">Guardar</button>' +
+                                    '<div class="col-12 col-sm-2 d-grid mt-2 mt-sm-0">' +
+                                        '<button type="submit" class="btn btn-sm btn-primary shadow-sm"><i class="bi bi-save"></i><span class="d-inline d-sm-none ms-2">Guardar</span></button>' +
                                     '</div>' +
                                 '</div>' +
                             '</form>' +
@@ -370,15 +381,19 @@
         if (tablaBodyEl) {
             tablaBodyEl.innerHTML = '';
             if (depositos.length === 0) {
-                tablaBodyEl.innerHTML = '<tr><td class="ps-3 text-muted" colspan="4">No hay depositos registrados.</td></tr>';
+                tablaBodyEl.innerHTML = '<tr><td class="text-center p-4 text-muted" colspan="4">No hay depósitos registrados.</td></tr>';
             } else {
                 depositos.forEach((d) => {
                     const row = document.createElement('tr');
+                    const origenHtml = (d.origen === 'esp32') 
+                        ? '<i class="bi bi-cpu me-1 text-primary"></i> ESP32' 
+                        : '<i class="bi bi-globe me-1"></i> ' + escapeHtml(d.origen || '');
+                    
                     row.innerHTML =
-                        '<td class="ps-3">' + (d.created_at || '') + '</td>' +
-                        '<td class="fw-semibold text-success">$ ' + formatMoney(d.monto || 0) + '</td>' +
-                        '<td>' + (d.pulsos ?? '-') + '</td>' +
-                        '<td>' + (d.origen || '') + '</td>';
+                        '<td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> ' + escapeHtml(d.created_at || '') + '</td>' +
+                        '<td class="fw-bold text-success fs-6"><span class="bg-success-subtle px-2 py-1 rounded">$ ' + formatMoney(d.monto || 0) + '</span></td>' +
+                        '<td class="text-center"><span class="badge bg-secondary rounded-circle px-2 py-1">' + (d.pulsos ?? '-') + '</span></td>' +
+                        '<td class="small fw-semibold text-muted">' + origenHtml + '</td>';
                     tablaBodyEl.appendChild(row);
                 });
             }
@@ -387,15 +402,15 @@
         if (tablaRetirosBodyEl) {
             tablaRetirosBodyEl.innerHTML = '';
             if (retiros.length === 0) {
-                tablaRetirosBodyEl.innerHTML = '<tr id="empty-retiros-row"><td class="ps-3 text-muted" colspan="4">Aun no hay retiros registrados.</td></tr>';
+                tablaRetirosBodyEl.innerHTML = '<tr id="empty-retiros-row"><td class="text-center p-4 text-muted" colspan="4">Aún no hay retiros registrados.</td></tr>';
             } else {
                 retiros.forEach((r) => {
                     const row = document.createElement('tr');
                     row.innerHTML =
-                        '<td class="ps-3">' + escapeHtml(r.created_at || '') + '</td>' +
-                        '<td class="fw-semibold text-danger">$ ' + formatMoney(r.monto_retirado || 0) + '</td>' +
-                        '<td>' + escapeHtml(r.usuario_nombre || '') + '</td>' +
-                        '<td>' + escapeHtml(r.motivo || '-') + '</td>';
+                        '<td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> ' + escapeHtml(r.created_at || '') + '</td>' +
+                        '<td class="fw-bold text-danger fs-6"><span class="bg-danger-subtle px-2 py-1 rounded">$ ' + formatMoney(r.monto_retirado || 0) + '</span></td>' +
+                        '<td class="small fw-semibold text-muted"><i class="bi bi-person-circle me-1"></i> ' + escapeHtml(r.usuario_nombre || '') + '</td>' +
+                        '<td class="small text-secondary">' + escapeHtml(r.motivo || '-') + '</td>';
                     tablaRetirosBodyEl.appendChild(row);
                 });
             }
