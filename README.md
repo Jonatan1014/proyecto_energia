@@ -16,6 +16,74 @@ Este proyecto utiliza un ESP32 para leer datos de un sensor **PZEM-004T-100A-D-P
 
 ## 🔌 Diagrama de Conexiones (Pinout)
 
+```mermaid
+graph LR
+    %% Grupos de Dispositivos
+    subgraph ESP32 [ESP32 NodeMCU / WROOM]
+        VIN[VIN / 5V]
+        GND[GND]
+        V33[3.3V]
+        G16[GPIO 16 / RX2]
+        G17[GPIO 17 / TX2]
+        G4[GPIO 4]
+        G5[GPIO 5]
+        G21[GPIO 21 / SDA]
+        G22[GPIO 22 / SCL]
+    end
+
+    subgraph FUENTE [Convertidor AC-DC]
+        F5V[Salida 5V]
+        FGND[Salida GND]
+    end
+
+    subgraph PZEM [PZEM-004T v1.0]
+        P_VCC[VCC]
+        P_GND[GND]
+        P_TX[TX]
+        P_RX[RX]
+        P_CF[CF Pulsos]
+    end
+
+    subgraph OLED [Pantalla OLED SSD1306]
+        O_VCC[VCC]
+        O_GND[GND]
+        O_SDA[SDA]
+        O_SCL[SCL]
+    end
+
+    subgraph RELAY [Módulo Relay 5V]
+        R_VCC[VCC]
+        R_GND[GND]
+        R_IN[IN]
+    end
+
+    %% Conexiones de Alimentación 5V
+    AC_Main["Fuente 110V/220V"] --> FUENTE
+    F5V -->|Cable Rojo| VIN
+    F5V -->|Cable Rojo| P_VCC
+    F5V -->|Cable Rojo| R_VCC
+
+    %% Conexiones de Tierra GND
+    FGND -->|Cable Negro| GND
+    FGND -->|Cable Negro| P_GND
+    FGND -->|Cable Negro| R_GND
+    GND -->|Cable Negro| O_GND
+
+    %% Conexiones PZEM-004T
+    P_TX -->|ESP32 Recibe| G16
+    G17 -->|ESP32 Envía| P_RX
+    P_CF -->|Lectura de Pulsos| G4
+
+    %% Conexiones OLED
+    V33 -->|Alimentación 3.3V| O_VCC
+    G21 -->|Comunicación I2C| O_SDA
+    G22 -->|Comunicación I2C| O_SCL
+
+    %% Conexión Relay
+    G5 -->|Señal de Control| R_IN
+```
+
+
 ### 1. Alimentación (Convertidor 110V a 5V)
 Para que el ESP32 funcione con la energía de la casa, conecta la salida del convertidor así:
 *   **Salida 5V (+)**  -> Pin **VIN** (o 5V) del ESP32.

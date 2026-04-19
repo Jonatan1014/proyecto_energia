@@ -271,13 +271,17 @@ class EnergyData {
                 SELECT 
                     er.f as fecha,
                     ROUND(SUM(er.e_diff), 4) as daily_energy,
-                    ROUND(AVG(er.a_power), 1) as avg_power
+                    ROUND(AVG(er.a_power), 1) as avg_power,
+                    ROUND(MAX(er.m_power), 1) as max_power,
+                    ROUND(AVG(er.a_volt), 1) as avg_voltage
                 FROM (
                     SELECT 
                         hardware_id,
                         DATE(timestamp) as f,
                         MAX(energy) - MIN(energy) as e_diff,
-                        AVG(power) as a_power
+                        AVG(power) as a_power,
+                        MAX(power) as m_power,
+                        AVG(voltage) as a_volt
                     FROM energy_readings
                     WHERE DATE(timestamp) BETWEEN ? AND ?
                     GROUP BY hardware_id, f
