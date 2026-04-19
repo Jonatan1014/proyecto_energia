@@ -15,96 +15,291 @@
 ?>
 
 <style>
-/* Estilos Globales para Componentes */
+/* Estilos Base y Globales */
+:root {
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .dashboard-card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: var(--transition);
 }
+
 .dashboard-card-hover:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12) !important;
 }
+
 .metric-value-text {
-    word-break: break-word; /* Evita desbordamientos con números grandes */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
-.table-compact-mobile td,
-.table-compact-mobile th {
+.dashboard-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.dashboard-header-actions > * {
     white-space: nowrap;
+    padding: 0.5rem 1rem !important;
+    border-radius: 0.75rem !important;
+    font-size: 0.9rem;
+    transition: var(--transition);
 }
 
-/* Responsividad Móvil */
-@media (max-width: 767.98px) {
+.dashboard-header-actions .btn {
+    cursor: pointer;
+    border: none;
+}
+
+.dashboard-header-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dashboard-header-actions .badge {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+}
+
+/* Typography Mejoras */
+h1.h2 {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+/* Cards y Contenedores */
+.card {
+    border: none;
+    border-radius: 1rem;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.card-body {
+    padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.card-header {
+    border: none;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(124, 58, 237, 0.02) 100%);
+}
+
+/* Tablas Responsivas */
+.table-responsive {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table td,
+.table th {
+    padding: clamp(0.5rem, 2vw, 1rem);
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    vertical-align: middle;
+}
+
+/* Badges y Labels */
+.badge {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background-color: #fef3c7;
+    color: #7c2d12;
+}
+
+.badge-success {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+/* Responsive Móvil Muy Pequeño */
+@media (max-width: 375px) {
+    .pt-3 {
+        padding-top: 0.75rem !important;
+    }
+
+    .pb-2 {
+        padding-bottom: 0.5rem !important;
+    }
+
+    h1.h2 {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+
+    .text-secondary {
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
     .dashboard-header-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
         width: 100%;
+        flex-direction: column;
         margin-top: 1rem;
     }
+
+    .dashboard-header-actions > * {
+        width: 100%;
+        text-align: center;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .table td,
+    .table th {
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* Responsive Móvil */
+@media (max-width: 576px) {
+    .dashboard-container {
+        margin-left: 0 !important;
+        padding: 1rem 0.75rem;
+    }
+
+    .dashboard-header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
     .dashboard-header-actions > * {
         width: 100%;
         margin: 0 !important;
-        text-align: center;
-        padding: 0.75rem 1rem !important;
-        border-radius: 0.5rem !important;
     }
-    h1.h2 {
-        font-size: 1.5rem;
-        line-height: 1.3;
-    }
+
     .card-body {
-        padding: 1.25rem 1rem;
-    }
-    .table-responsive {
-        border: 0;
+        padding: 1.25rem;
     }
 
-    .progress {
-        height: 1.05rem !important;
+    .row.g-3 > .col-12,
+    .row.g-3 > .col-lg-6,
+    .row.g-3 > [class*="col-"] {
+        margin-bottom: 0.5rem;
     }
 
-    #texto-avance,
-    #texto-acumulado {
-        display: block;
-        width: 100%;
-    }
-
-    .card-header h5 {
-        font-size: 1rem;
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
     }
 }
 
-@media (max-width: 575.98px) {
-    .row.align-items-center {
-        margin-left: 0;
-        margin-right: 0;
+/* Tablet */
+@media (min-width: 576px) and (max-width: 992px) {
+    h1.h2 {
+        font-size: 1.75rem;
     }
 
-    .dashboard-header-actions .badge {
-        font-size: .8rem !important;
-        white-space: normal;
-        line-height: 1.3;
-    }
-
-    .metric-value-text {
-        font-size: 1.35rem !important;
-    }
-
-    .card.rounded-4 {
-        border-radius: 1rem !important;
-    }
-
-    .table-compact-mobile th,
-    .table-compact-mobile td {
-        font-size: .78rem;
-        padding-top: .55rem !important;
-        padding-bottom: .55rem !important;
-    }
-
-    .table-compact-mobile td .badge.rounded-circle {
-        min-width: 2rem;
-        display: inline-flex;
+    .dashboard-header-actions {
         justify-content: center;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+    .dashboard-header-actions {
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .dashboard-header-actions > * {
+        width: auto;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+
+/* Ajustes de Grillas */
+@media (max-width: 768px) {
+    .col-md-4 {
+        margin-bottom: 1rem;
+    }
+
+    .col-lg-6 {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Alerts y Mensajes */
+.alert {
+    border-radius: 1rem;
+    border: none;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Barra de Progreso */
+.progress {
+    border-radius: 1rem;
+    background-color: #e9ecef;
+    height: 1.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+    font-weight: 600;
+}
+
+/* Estilos Finales de Responsividad */
+@media (max-width: 767.98px) {
+    main.main-content {
+        margin-left: 0 !important;
+        min-height: auto;
+        padding: 1rem 0.75rem;
+    }
+
+    .container-fluid {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
 }
 </style>
@@ -179,7 +374,7 @@
     </div>
     <div class="card-body">
         <div class="progress rounded-pill shadow-sm bg-light" style="height: 1.25rem;">
-            <div id="barra-avance-div" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%" aria-valuenow="<?php echo $avanceGeneral; ?>" aria-valuemin="0" aria-valuemax="100">
+            <div id="barra-avance-div" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%" aria-valuenow="<?php echo $avanceGeneral; ?>" aria-valuemin="0" aria-valuemax="100">
                 <span class="small fw-bold px-2"><?php echo number_format($avanceGeneral, 1, ',', '.'); ?>%</span>
             </div>
             <!-- Backup hidden para script si existe ID -->
@@ -211,12 +406,6 @@
                             $montoActual   = (float) ($meta['monto_actual'] ?? 0);
                             $montoObjetivo = (float) ($meta['monto_objetivo'] ?? 0);
                             $avance        = $montoObjetivo > 0 ? min(100, ($montoActual / $montoObjetivo) * 100) : 0;
-                            $progressClass = 'bg-secondary';
-                            if ($avance >= 100) {
-                                $progressClass = 'bg-success';
-                            } elseif (!empty($meta['activa'])) {
-                                $progressClass = 'bg-primary progress-bar-animated';
-                            }
                         ?>
                         <div class="mb-3 border-0 rounded-4 p-3 bg-light shadow-sm" data-meta-id="<?php echo (int) $meta['id']; ?>">
                             <div class="d-flex flex-column flex-sm-row justify-content-between mb-2">
@@ -233,7 +422,7 @@
                                 <span class="text-muted">de <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoObjetivo, 0, ',', '.'); ?></span>
                             </div>
                             <div class="progress rounded-pill mb-3 shadow-sm" style="height: 10px;">
-                                <div class="progress-bar progress-bar-striped <?php echo $progressClass; ?>" style="width: <?php echo $avance; ?>%"></div>
+                                <div class="progress-bar progress-bar-striped <?php echo $avance >= 100 ? 'bg-success' : (!empty($meta['activa']) ? 'bg-primary progress-bar-animated' : 'bg-secondary'); ?>" style="width: <?php echo $avance; ?>%"></div>
                             </div>
                             
                             <hr class="border-secondary-subtle">
@@ -273,7 +462,7 @@
                      </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 border-top table-compact-mobile">
+                        <table class="table table-hover align-middle mb-0 border-top">
                             <thead class="table-light text-muted small text-uppercase">
                                 <tr>
                                     <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
@@ -312,7 +501,7 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 border-top table-compact-mobile">
+            <table class="table table-hover align-middle mb-0 border-top">
                 <thead class="table-light text-muted small text-uppercase">
                     <tr>
                         <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
@@ -444,10 +633,10 @@
             } else {
                 depositos.forEach((d) => {
                     const row = document.createElement('tr');
-                    const origenHtml = (d.origen === 'esp32')
-                        ? '<i class="bi bi-cpu me-1 text-primary"></i> ESP32'
+                    const origenHtml = (d.origen === 'esp32') 
+                        ? '<i class="bi bi-cpu me-1 text-primary"></i> ESP32' 
                         : '<i class="bi bi-globe me-1"></i> ' + escapeHtml(d.origen || '');
-
+                    
                     row.innerHTML =
                         '<td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> ' + escapeHtml(d.created_at || '') + '</td>' +
                         '<td class="fw-bold text-success fs-6"><span class="bg-success-subtle px-2 py-1 rounded">$ ' + formatMoney(d.monto || 0) + '</span></td>' +
