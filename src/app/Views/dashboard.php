@@ -18,98 +18,131 @@
 @media (max-width: 767.98px) {
     .dashboard-header-actions {
         width: 100%;
-        margin-top: 0.75rem;
+        margin-top: 1rem;
         display: flex;
         flex-direction: column;
-        align-items: stretch !important;
         gap: 0.5rem;
     }
 
     .dashboard-header-actions .btn,
     .dashboard-header-actions .badge {
         width: 100%;
-        justify-content: center;
         text-align: center;
+        padding: 0.6rem;
     }
 
     .table-responsive table {
-        font-size: 0.875rem;
+        font-size: 0.85rem;
     }
 
     .card-body {
-        padding: 1rem;
+        padding: 1.25rem;
     }
+    
+    .metric-value-text {
+        font-size: 1.8rem !important;
+    }
+}
+
+.dashboard-card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dashboard-card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
 }
 </style>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-1 pb-2 mb-4 border-bottom">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
     <div>
-        <h1 class="h2 mb-1">Resumen de Alcancia</h1>
-        <p class="text-muted mb-0">Monitorea tus depositos, metas y avance de ahorro.</p>
+        <h1 class="h2 fw-bold text-dark mb-1">Tu Alcancía <i class="bi bi-piggy-bank"></i></h1>
+        <p class="text-secondary mb-0">Monitorea tus depósitos, metas y tu progreso para alcanzar tus sueños.</p>
     </div>
-    <div class="text-end dashboard-header-actions">
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
-            Moneda: <?php echo htmlspecialchars($moneda); ?>
+    <div class="text-md-end dashboard-header-actions mt-3 mt-md-0">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 rounded-pill">
+            <i class="bi bi-cash-coin me-1"></i> Moneda: <strong><?php echo htmlspecialchars($moneda); ?></strong>
         </span>
-        <button id="btn-sync-oled" type="button" class="btn btn-sm btn-outline-primary ms-2">Sincronizar OLED</button>
-        <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-outline-danger ms-2">Vaciar alcancia</button>
+        <button id="btn-sync-oled" type="button" class="btn btn-sm btn-outline-primary ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-arrow-repeat me-1"></i> Sincronizar OLED</button>
+        <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-danger ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-trash3 me-1"></i> Vaciar alcancía</button>
     </div>
 </div>
 
-<div id="panel-mensajes" class="alert d-none" role="alert"></div>
+<div id="panel-mensajes" class="alert d-none shadow-sm rounded-3" role="alert"></div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-start border-4 border-success">
+    <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm border-0 border-start border-5 border-success dashboard-card-hover rounded-4">
             <div class="card-body">
-                <div class="text-muted small text-uppercase">Total Ahorrado</div>
-                <div id="total-ahorrado" class="fs-3 fw-bold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($totalAhorrado, 0, ',', '.'); ?></div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-success-subtle p-2 rounded-circle me-2">
+                        <i class="bi bi-wallet2 text-success fs-5"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase tracking-wide">Total Ahorrado</div>
+                </div>
+                <div id="total-ahorrado" class="fs-2 fw-bold text-success metric-value-text"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($totalAhorrado, 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-start border-4 border-primary">
+    <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm border-0 border-start border-5 border-primary dashboard-card-hover rounded-4">
             <div class="card-body">
-                <div class="text-muted small text-uppercase">Meta General</div>
-                <div id="meta-general" class="fs-3 fw-bold text-primary"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($metaGeneral, 0, ',', '.'); ?></div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-primary-subtle p-2 rounded-circle me-2">
+                        <i class="bi bi-bullseye text-primary fs-5"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase tracking-wide">Meta General</div>
+                </div>
+                <div id="meta-general" class="fs-2 fw-bold text-primary metric-value-text"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($metaGeneral, 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm border-start border-4 border-info">
+    <div class="col-12 col-md-4">
+        <div class="card h-100 shadow-sm border-0 border-start border-5 border-info dashboard-card-hover rounded-4">
             <div class="card-body">
-                <div class="text-muted small text-uppercase">Depositos Registrados</div>
-                <div id="total-depositos" class="fs-3 fw-bold text-info"><?php echo number_format((int) $resumen['total_depositos'], 0, ',', '.'); ?></div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-info-subtle p-2 rounded-circle me-2">
+                        <i class="bi bi-graph-up-arrow text-info fs-5"></i>
+                    </div>
+                    <div class="text-muted small fw-bold text-uppercase tracking-wide">Depósitos Realizados</div>
+                </div>
+                <div id="total-depositos" class="fs-2 fw-bold text-info metric-value-text"><?php echo number_format((int) $resumen['total_depositos'], 0, ',', '.'); ?></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-header bg-white">
-        <h5 class="mb-0">Progreso General</h5>
+<div class="card mb-4 shadow-sm border-0 rounded-4">
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-steps text-secondary me-2"></i>Progreso de Ahorro</h5>
     </div>
     <div class="card-body">
-        <div class="progress" style="height: 12px;">
-            <progress id="barra-avance" class="w-100" max="100" value="<?php echo min(100, max(0, $avanceGeneral)); ?>" style="height:12px;"></progress>
+        <div class="progress rounded-pill shadow-sm bg-light" style="height: 1.25rem;">
+            <div id="barra-avance-div" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%" aria-valuenow="<?php echo $avanceGeneral; ?>" aria-valuemin="0" aria-valuemax="100">
+                <span class="small fw-bold px-2"><?php echo number_format($avanceGeneral, 1, ',', '.'); ?>%</span>
+            </div>
+            <!-- Backup hidden para script si existe ID -->
+            <progress id="barra-avance" class="d-none" max="100" value="<?php echo min(100, max(0, $avanceGeneral)); ?>"></progress>
         </div>
-        <div class="d-flex justify-content-between mt-2 text-muted small">
-            <span id="texto-avance"><?php echo number_format($avanceGeneral, 2, ',', '.'); ?>% completado</span>
-            <span id="texto-acumulado">Acumulado en depositos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
+        <div class="d-flex flex-column flex-sm-row justify-content-between mt-3 text-muted small">
+            <span id="texto-avance" class="fw-semibold mb-1 mb-sm-0"><i class="bi bi-check-circle-fill text-success me-1"></i><?php echo number_format($avanceGeneral, 2, ',', '.'); ?>% completado</span>
+            <span id="texto-acumulado" class="fw-semibold px-2 py-1 bg-light rounded"><i class="bi bi-plus-circle-fill text-secondary me-1"></i>Acumulado en depósitos: <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $resumen['acumulado_depositos'], 0, ',', '.'); ?></span>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Metas de Ahorro</h5>
-                <span class="badge bg-secondary"><?php echo count($metas); ?> metas</span>
+        <div class="card h-100 shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-4">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-flag-fill text-warning me-2"></i>Mis Metas</h5>
+                <span class="badge bg-warning text-dark shadow-sm rounded-pill px-3"><?php echo count($metas); ?> activas</span>
             </div>
             <div class="card-body" id="metas-container">
                 <?php if (empty($metas)): ?>
-                    <p class="text-muted mb-0">No hay metas registradas.</p>
+                    <div class="text-center p-4 bg-light rounded-4">
+                        <i class="bi bi-journal-x text-muted mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted mb-0">No tienes metas de ahorro registradas.</p>
+                    </div>
                 <?php else: ?>
                     <?php foreach ($metas as $meta): ?>
                         <?php
@@ -117,29 +150,38 @@
                             $montoObjetivo = (float) ($meta['monto_objetivo'] ?? 0);
                             $avance        = $montoObjetivo > 0 ? min(100, ($montoActual / $montoObjetivo) * 100) : 0;
                         ?>
-                        <div class="mb-3 border rounded p-3 bg-light-subtle" data-meta-id="<?php echo (int) $meta['id']; ?>">
-                            <div class="d-flex justify-content-between">
-                                <strong><?php echo htmlspecialchars($meta['nombre']); ?></strong>
-                                <span class="text-muted small"><?php echo number_format($avance, 1, ',', '.'); ?>%</span>
+                        <div class="mb-3 border-0 rounded-4 p-3 bg-light shadow-sm" data-meta-id="<?php echo (int) $meta['id']; ?>">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between mb-2">
+                                <strong class="fs-6 text-dark d-flex align-items-center">
+                                    <?php if(!empty($meta['activa'])): ?>
+                                        <i class="bi bi-star-fill text-warning me-2 small"></i>
+                                    <?php endif; ?>
+                                    <?php echo htmlspecialchars($meta['nombre']); ?>
+                                </strong>
+                                <span class="badge <?php echo $avance >= 100 ? 'bg-success' : 'bg-primary'; ?> rounded-pill align-self-start mt-2 mt-sm-0"><?php echo number_format($avance, 1, ',', '.'); ?>%</span>
                             </div>
-                            <div class="small text-muted mb-1">
-                                <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoActual, 0, ',', '.'); ?> de <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoObjetivo, 0, ',', '.'); ?>
+                            <div class="small fw-semibold text-secondary mb-2 d-flex justify-content-between">
+                                <span><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoActual, 0, ',', '.'); ?></span>
+                                <span class="text-muted">de <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoObjetivo, 0, ',', '.'); ?></span>
                             </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar <?php echo ! empty($meta['activa']) ? 'bg-primary' : 'bg-secondary'; ?>" style="width: <?php echo $avance; ?>%"></div>
+                            <div class="progress rounded-pill mb-3 shadow-sm" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped <?php echo $avance >= 100 ? 'bg-success' : (!empty($meta['activa']) ? 'bg-primary progress-bar-animated' : 'bg-secondary'); ?>" style="width: <?php echo $avance; ?>%"></div>
                             </div>
-                            <form class="form-editar-meta mt-3" data-meta-id="<?php echo (int) $meta['id']; ?>">
+                            
+                            <hr class="border-secondary-subtle">
+                            
+                            <form class="form-editar-meta" data-meta-id="<?php echo (int) $meta['id']; ?>">
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-md-5">
-                                        <label class="form-label small mb-1" for="meta-nombre-<?php echo (int) $meta['id']; ?>">Nombre meta</label>
-                                        <input id="meta-nombre-<?php echo (int) $meta['id']; ?>" type="text" class="form-control form-control-sm" name="nombre" maxlength="120" value="<?php echo htmlspecialchars($meta['nombre']); ?>" required>
+                                    <div class="col-12 col-sm-5">
+                                        <label class="form-label text-muted small fw-bold mb-1" for="meta-nombre-<?php echo (int) $meta['id']; ?>">Nombre meta</label>
+                                        <input id="meta-nombre-<?php echo (int) $meta['id']; ?>" type="text" class="form-control form-control-sm bg-white" name="nombre" maxlength="120" value="<?php echo htmlspecialchars($meta['nombre']); ?>" required>
                                     </div>
-                                    <div class="col-md-5">
-                                        <label class="form-label small mb-1" for="meta-monto-<?php echo (int) $meta['id']; ?>">Monto objetivo</label>
-                                        <input id="meta-monto-<?php echo (int) $meta['id']; ?>" type="number" class="form-control form-control-sm" name="monto_objetivo" min="1" step="1" value="<?php echo (float) $montoObjetivo; ?>" required>
+                                    <div class="col-12 col-sm-5">
+                                        <label class="form-label text-muted small fw-bold mb-1" for="meta-monto-<?php echo (int) $meta['id']; ?>">Monto objetivo</label>
+                                        <input id="meta-monto-<?php echo (int) $meta['id']; ?>" type="number" class="form-control form-control-sm bg-white" name="monto_objetivo" min="1" step="1" value="<?php echo (float) $montoObjetivo; ?>" required>
                                     </div>
-                                    <div class="col-md-2 d-grid">
-                                        <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                                    <div class="col-12 col-sm-2 d-grid mt-2 mt-sm-0">
+                                        <button type="submit" class="btn btn-sm btn-primary shadow-sm"><i class="bi bi-save"></i><span class="d-inline d-sm-none ms-2">Guardar</span></button>
                                     </div>
                                 </div>
                             </form>
@@ -151,31 +193,40 @@
     </div>
 
     <div class="col-lg-6">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Ultimos Depositos</h5>
+        <div class="card h-100 shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-secondary me-2"></i>Últimos Depósitos</h5>
             </div>
             <div class="card-body p-0">
                 <?php if (empty($depositos)): ?>
-                    <div class="p-3 text-muted">No hay depositos registrados.</div>
+                     <div class="text-center p-4">
+                        <i class="bi bi-inbox text-muted mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted mb-0">Aún no hay depósitos registrados.</p>
+                     </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0 border-top">
+                            <thead class="table-light text-muted small text-uppercase">
                                 <tr>
-                                    <th class="ps-3">Fecha</th>
-                                    <th>Monto</th>
-                                    <th>Pulsos</th>
-                                    <th>Origen</th>
+                                    <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
+                                    <th class="fw-semibold border-0">Monto</th>
+                                    <th class="fw-semibold border-0 text-center">Pulsos</th>
+                                    <th class="fw-semibold border-0 rounded-end">Origen</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-depositos-body">
                                 <?php foreach ($depositos as $d): ?>
                                     <tr>
-                                        <td class="ps-3"><?php echo htmlspecialchars($d['created_at'] ?? ''); ?></td>
-                                        <td class="fw-semibold text-success"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $d['monto'], 0, ',', '.'); ?></td>
-                                        <td><?php echo isset($d['pulsos']) ? (int) $d['pulsos'] : '-'; ?></td>
-                                        <td><?php echo htmlspecialchars($d['origen'] ?? ''); ?></td>
+                                        <td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> <?php echo htmlspecialchars($d['created_at'] ?? ''); ?></td>
+                                        <td class="fw-bold text-success fs-6"><span class="bg-success-subtle px-2 py-1 rounded"><?php echo CURRENCY_SYMBOL; ?> <?php echo number_format((float) $d['monto'], 0, ',', '.'); ?></span></td>
+                                        <td class="text-center"><span class="badge bg-secondary rounded-circle px-2 py-1"><?php echo isset($d['pulsos']) ? (int) $d['pulsos'] : '-'; ?></span></td>
+                                        <td class="small fw-semibold text-muted">
+                                            <?php if(($d['origen'] ?? '') == 'esp32'): ?>
+                                                <i class="bi bi-cpu me-1 text-primary"></i> ESP32
+                                            <?php else: ?>
+                                                <i class="bi bi-globe me-1"></i> <?php echo htmlspecialchars($d['origen'] ?? ''); ?>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
