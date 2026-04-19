@@ -48,6 +48,7 @@ CREATE TABLE device_config (
     max_power       DECIMAL(10,2) DEFAULT 22000.00,
     alert_threshold DECIMAL(10,2) DEFAULT 0,
     relay_default   ENUM('ON','OFF') DEFAULT 'ON',
+    should_reset_energy TINYINT(1) DEFAULT 0 COMMENT 'Bandera para decirle al ESP32 que resetee los kWh a cero',
     is_active       TINYINT(1) DEFAULT 1,
     last_seen       DATETIME DEFAULT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

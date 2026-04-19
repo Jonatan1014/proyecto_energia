@@ -29,6 +29,7 @@ return [
     '/settings/claim-device' => ['controller' => 'SettingsController', 'action' => 'claimDevice'],
     '/settings/link-device'  => ['controller' => 'SettingsController', 'action' => 'linkDevice'],
     '/settings/unlink-device'=> ['controller' => 'SettingsController', 'action' => 'unlinkDevice'],
+    '/settings/reset-energy' => ['controller' => 'SettingsController', 'action' => 'resetEnergy'],
 
     // ========================================
     // PERFIL

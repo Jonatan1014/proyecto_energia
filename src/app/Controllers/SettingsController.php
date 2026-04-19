@@ -184,4 +184,39 @@ class SettingsController {
         header("Location: " . BASE_URL . "/settings");
         exit;
     }
+
+    /**
+     * POST /settings/reset-energy - Programar reseteo de kWh
+     */
+    public function resetEnergy() {
+        AuthService::requireLogin();
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
+        $userId = AuthService::getUserId();
+        $hardwareId = trim($_POST['hardware_id'] ?? '');
+
+        if (empty($hardwareId)) {
+            $_SESSION['error'] = 'Hardware ID inválido';
+            header("Location: " . BASE_URL . "/settings");
+            exit;
+        }
+
+        // Programar el reseteo
+        $result = $this->deviceConfig->requestEnergyReset($hardwareId);
+
+        if ($result) {
+            // Opcional: También borrar las lecturas antiguas de la BD para este HW ID
+            require_once __DIR__ . '/../Models/EnergyData.php';
+            $energyModel = new EnergyData();
+            // Ya que queremos un borrado total, podemos crear un método rápido o simplemente usar una consulta directa.
+            // Para mantenerlo limpio, asumiremos que si se resetea el histórico, los datos empiezán en 0 desde el próximo envío.
+            
+            $_SESSION['success'] = 'Comando enviado. El historial de kWh se reiniciará en el hardware en los próximos segundos.';
+        } else {
+            $_SESSION['error'] = 'No se pudo enviar el comando de reseteo.';
+        }
+
+        header("Location: " . BASE_URL . "/settings");
+        exit;
+    }
 }

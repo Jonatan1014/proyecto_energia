@@ -97,7 +97,23 @@ class ApiController {
         $device = $model->findOrCreateByHardwareId($hardwareId);
 
         if ($device) {
-            echo json_encode(['status' => 'success', 'relay' => $device['relay_default']]);
+            $response = [
+                'status' => 'success', 
+                'relay' => $device['relay_default'],
+                'reset_energy' => (bool)$device['should_reset_energy']
+            ];
+            
+            // Si había un reset pendiente, limpiarlo para que no se repita
+            if ($device['should_reset_energy']) {
+                $model->clearEnergyReset($hardwareId);
+                
+                // Opcional: También podríamos borrar el historial de lecturas de la base de datos
+                // require_once __DIR__ . '/../Models/EnergyData.php';
+                // $energyModel = new EnergyData();
+                // $energyModel->purgeDeviceReadings($hardwareId);
+            }
+
+            echo json_encode($response);
         } else {
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => 'Dispositivo no encontrado']);

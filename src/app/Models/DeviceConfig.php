@@ -247,4 +247,30 @@ class DeviceConfig {
             return false;
         }
     }
+
+    /**
+     * Programar un reseteo de energía (colocar la bandera en 1)
+     */
+    public function requestEnergyReset($hardwareId) {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE device_config SET should_reset_energy = 1 WHERE hardware_id = ?");
+            return $stmt->execute([$hardwareId]);
+        } catch (Exception $e) {
+            error_log("Error requesting energy reset: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Limpiar la bandera de reseteo (colocar en 0 tras ser procesada)
+     */
+    public function clearEnergyReset($hardwareId) {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE device_config SET should_reset_energy = 0 WHERE hardware_id = ?");
+            return $stmt->execute([$hardwareId]);
+        } catch (Exception $e) {
+            error_log("Error clearing energy reset flag: " . $e->getMessage());
+            return false;
+        }
+    }
 }

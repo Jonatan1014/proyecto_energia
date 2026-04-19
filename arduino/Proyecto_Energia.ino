@@ -388,13 +388,20 @@ void consultarEstadoRelay() {
   int httpResponseCode = http.GET();
   if (httpResponseCode > 0) {
     String response = http.getString();
-    // Esperamos un json: {"status":"success","relay":"ON"}
+    // Esperamos un json: {"status":"success","relay":"ON","reset_energy":false}
     if (response.indexOf("\"relay\":\"ON\"") > 0) {
       digitalWrite(RELAY_PIN, HIGH);
       Serial.println("Relay establecido a: ON (HIGH)");
     } else if (response.indexOf("\"relay\":\"OFF\"") > 0) {
       digitalWrite(RELAY_PIN, LOW);
       Serial.println("Relay establecido a: OFF (LOW)");
+    }
+
+    if (response.indexOf("\"reset_energy\":true") > 0) {
+      Serial.println("¡Comando de RESET de energía recibido!");
+      if (pzem != nullptr) {
+        pzem->resetEnergy();
+      }
     }
   } else {
     Serial.println("Error al consultar relay: " + String(httpResponseCode));

@@ -146,10 +146,20 @@ include __DIR__ . '/includes/sidebar.php';
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-save"></i> Guardar Cambios
-                    </button>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Guardar Cambios
+                        </button>
+                    </div>
                 </form>
+                <div style="margin-top: 1rem;">
+                    <form method="POST" action="<?php echo url('settings/reset-energy'); ?>" onsubmit="return confirm('¿Estás seguro de querer resetear a 0 el consumo de energía en el hardware?');">
+                        <input type="hidden" name="hardware_id" value="<?php echo htmlspecialchars($device['hardware_id']); ?>">
+                        <button type="submit" class="btn-primary" style="background-color: #ef4444;">
+                            <i class="fas fa-trash-can"></i> Resetear Energía (kWh)
+                        </button>
+                    </form>
+                </div>
             <?php else: ?>
                 <div class="empty-state">
                     <i class="fas fa-plug-circle-exclamation"></i>
