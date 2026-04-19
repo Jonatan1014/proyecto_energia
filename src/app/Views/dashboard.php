@@ -62,7 +62,7 @@
         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6 rounded-pill">
             <i class="bi bi-cash-coin me-1"></i> Moneda: <strong><?php echo htmlspecialchars($moneda); ?></strong>
         </span>
-        <button id="btn-sync-oled" type="button" class="btn btn-sm btn-outline-primary ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-arrow-repeat me-1"></i> Sincronizar OLED</button>
+        <button id="btn-eliminar-registros" type="button" class="btn btn-sm btn-outline-danger ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-eraser me-1"></i> Eliminar registros</button>
         <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-danger ms-md-2 mt-2 mt-md-0 rounded-pill px-3 shadow-sm"><i class="bi bi-trash3 me-1"></i> Vaciar alcancía</button>
     </div>
 </div>
@@ -501,31 +501,39 @@
         });
     }
 
-    function bindSyncButton() {
-        const syncBtn = document.getElementById('btn-sync-oled');
-        if (!syncBtn) {
+    function bindEliminarRegistrosButton() {
+        const btn = document.getElementById('btn-eliminar-registros');
+        if (!btn) {
             return;
         }
 
-        syncBtn.addEventListener('click', () => {
-            fetch('api/alcancia/comando', {
+        btn.addEventListener('click', () => {
+            const confirmar1 = window.confirm('ATENCIÓN: Esto eliminará de forma irreversible el historial de depósitos y retiros. La alcancía no se pondrá en cero, solo se borrarán los registros. ¿Deseas continuar?');
+            if (!confirmar1) {
+                return;
+            }
+            
+            const confirmar2 = window.confirm('¿Estás absolutamente seguro de eliminar TODOS los registros de la base de datos? Esta acción NO se puede deshacer.');
+            if (!confirmar2) {
+                return;
+            }
+
+            fetch('api/alcancia/eliminar-registros', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    accion: 'sync_state',
-                    datos: { requested_from: 'dashboard' }
-                })
+                body: JSON.stringify({ confirmar: true })
             })
                 .then((r) => r.json())
                 .then((data) => {
                     if (!data.ok) {
-                        showMessage('danger', 'No se pudo enviar comando de sincronizacion');
+                        showMessage('danger', data.error || 'No se pudieron eliminar los registros');
                         return;
                     }
 
-                    showMessage('success', 'Sincronizacion solicitada');
+                    showMessage('success', data.message || 'Registros eliminados correctamente');
+                    renderEstado(data);
                 })
-                .catch(() => showMessage('danger', 'Error enviando comando de sincronizacion'));
+                .catch(() => showMessage('danger', 'Error de red al intentar eliminar los registros'));
         });
     }
 
@@ -547,7 +555,7 @@
 
     bindMetaForms();
     bindVaciarButton();
-    bindSyncButton();
+    bindEliminarRegistrosButton();
     startAutoRefresh();
 </script>
 
