@@ -27,6 +27,11 @@
     word-break: break-word; /* Evita desbordamientos con números grandes */
 }
 
+.table-compact-mobile td,
+.table-compact-mobile th {
+    white-space: nowrap;
+}
+
 /* Responsividad Móvil */
 @media (max-width: 767.98px) {
     .dashboard-header-actions {
@@ -52,6 +57,54 @@
     }
     .table-responsive {
         border: 0;
+    }
+
+    .progress {
+        height: 1.05rem !important;
+    }
+
+    #texto-avance,
+    #texto-acumulado {
+        display: block;
+        width: 100%;
+    }
+
+    .card-header h5 {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .row.align-items-center {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .dashboard-header-actions .badge {
+        font-size: .8rem !important;
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    .metric-value-text {
+        font-size: 1.35rem !important;
+    }
+
+    .card.rounded-4 {
+        border-radius: 1rem !important;
+    }
+
+    .table-compact-mobile th,
+    .table-compact-mobile td {
+        font-size: .78rem;
+        padding-top: .55rem !important;
+        padding-bottom: .55rem !important;
+    }
+
+    .table-compact-mobile td .badge.rounded-circle {
+        min-width: 2rem;
+        display: inline-flex;
+        justify-content: center;
     }
 }
 </style>
@@ -126,7 +179,7 @@
     </div>
     <div class="card-body">
         <div class="progress rounded-pill shadow-sm bg-light" style="height: 1.25rem;">
-            <div id="barra-avance-div" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%" aria-valuenow="<?php echo $avanceGeneral; ?>" aria-valuemin="0" aria-valuemax="100">
+            <div id="barra-avance-div" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: <?php echo min(100, max(0, $avanceGeneral)); ?>%" aria-valuenow="<?php echo $avanceGeneral; ?>" aria-valuemin="0" aria-valuemax="100">
                 <span class="small fw-bold px-2"><?php echo number_format($avanceGeneral, 1, ',', '.'); ?>%</span>
             </div>
             <!-- Backup hidden para script si existe ID -->
@@ -158,6 +211,12 @@
                             $montoActual   = (float) ($meta['monto_actual'] ?? 0);
                             $montoObjetivo = (float) ($meta['monto_objetivo'] ?? 0);
                             $avance        = $montoObjetivo > 0 ? min(100, ($montoActual / $montoObjetivo) * 100) : 0;
+                            $progressClass = 'bg-secondary';
+                            if ($avance >= 100) {
+                                $progressClass = 'bg-success';
+                            } elseif (!empty($meta['activa'])) {
+                                $progressClass = 'bg-primary progress-bar-animated';
+                            }
                         ?>
                         <div class="mb-3 border-0 rounded-4 p-3 bg-light shadow-sm" data-meta-id="<?php echo (int) $meta['id']; ?>">
                             <div class="d-flex flex-column flex-sm-row justify-content-between mb-2">
@@ -174,7 +233,7 @@
                                 <span class="text-muted">de <?php echo CURRENCY_SYMBOL; ?> <?php echo number_format($montoObjetivo, 0, ',', '.'); ?></span>
                             </div>
                             <div class="progress rounded-pill mb-3 shadow-sm" style="height: 10px;">
-                                <div class="progress-bar progress-bar-striped <?php echo $avance >= 100 ? 'bg-success' : (!empty($meta['activa']) ? 'bg-primary progress-bar-animated' : 'bg-secondary'); ?>" style="width: <?php echo $avance; ?>%"></div>
+                                <div class="progress-bar progress-bar-striped <?php echo $progressClass; ?>" style="width: <?php echo $avance; ?>%"></div>
                             </div>
                             
                             <hr class="border-secondary-subtle">
@@ -214,7 +273,7 @@
                      </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 border-top">
+                        <table class="table table-hover align-middle mb-0 border-top table-compact-mobile">
                             <thead class="table-light text-muted small text-uppercase">
                                 <tr>
                                     <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
@@ -253,7 +312,7 @@
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 border-top">
+            <table class="table table-hover align-middle mb-0 border-top table-compact-mobile">
                 <thead class="table-light text-muted small text-uppercase">
                     <tr>
                         <th class="ps-4 fw-semibold border-0 rounded-start">Fecha</th>
@@ -385,10 +444,10 @@
             } else {
                 depositos.forEach((d) => {
                     const row = document.createElement('tr');
-                    const origenHtml = (d.origen === 'esp32') 
-                        ? '<i class="bi bi-cpu me-1 text-primary"></i> ESP32' 
+                    const origenHtml = (d.origen === 'esp32')
+                        ? '<i class="bi bi-cpu me-1 text-primary"></i> ESP32'
                         : '<i class="bi bi-globe me-1"></i> ' + escapeHtml(d.origen || '');
-                    
+
                     row.innerHTML =
                         '<td class="ps-4 text-secondary small py-3"><i class="bi bi-calendar2-event me-1"></i> ' + escapeHtml(d.created_at || '') + '</td>' +
                         '<td class="fw-bold text-success fs-6"><span class="bg-success-subtle px-2 py-1 rounded">$ ' + formatMoney(d.monto || 0) + '</span></td>' +

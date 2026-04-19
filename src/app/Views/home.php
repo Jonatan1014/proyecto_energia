@@ -8,9 +8,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        body {
+            background: linear-gradient(180deg, #f8f9fa 0%, #eef3ff 100%);
+        }
+
         .home-card {
             border-radius: 1rem;
             border: none;
+        }
+
+        .home-title {
+            line-height: 1.2;
         }
         
         @media (max-width: 767.98px) {
@@ -18,6 +26,25 @@
             .metric-box { margin-bottom: 1rem; }
             .home-actions, .home-links { flex-direction: column; width: 100%; gap: 0.5rem !important; }
             .home-actions .btn, .home-links .btn { width: 100%; margin: 0 !important; }
+            .home-links { margin-top: .25rem; }
+        }
+
+        @media (max-width: 575.98px) {
+            .home-title {
+                font-size: 1.35rem !important;
+            }
+            .metric-box {
+                padding: .875rem;
+            }
+            .metric-value {
+                font-size: 1.2rem;
+            }
+            .metric-label {
+                font-size: .78rem;
+            }
+            .home-card .card-body {
+                padding: 1.15rem !important;
+            }
         }
         
         .metric-box {
@@ -37,7 +64,7 @@
         .metric-value { font-size: 1.5rem; font-weight: 700; color: #343a40; margin-bottom: 0; }
     </style>
 </head>
-<body class="bg-light">
+<body>
     <div class="container py-4 py-md-5">
         <div class="row justify-content-center">
             <div class="col-lg-10 col-md-12">
@@ -45,13 +72,13 @@
                     <div class="card-body p-4 p-md-5">
                         <div class="d-flex align-items-center justify-content-center mb-4">
                             <i class="bi bi-lightning-charge-fill text-warning fs-2 me-2"></i>
-                            <h1 class="card-title text-center mb-0 fs-3 fs-md-2 fw-bold">Monitor de Energía</h1>
+                            <h1 class="card-title text-center mb-0 fs-3 fs-md-2 fw-bold home-title">Monitor de Energía</h1>
                         </div>
                         
                         <div id="data" class="row g-3 mb-4">
                             <!-- Los datos se injectan aquí -->
                             <div class="col-12 text-center text-muted">
-                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                <output class="spinner-border spinner-border-sm text-primary me-2" aria-label="Cargando"></output>
                                 Cargando datos del sensor...
                             </div>
                         </div>
@@ -83,19 +110,19 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('data').innerHTML = `
-                        <div class="col-6 col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="metric-box voltage">
                                 <div class="metric-label"><i class="bi bi-speedometer me-1"></i>Voltaje</div>
                                 <div class="metric-value">${data.voltage} <small class="text-muted fs-6">V</small></div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="metric-box current">
                                 <div class="metric-label"><i class="bi bi-signpost-split me-1"></i>Corriente</div>
                                 <div class="metric-value">${data.current} <small class="text-muted fs-6">A</small></div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="metric-box power">
                                 <div class="metric-label"><i class="bi bi-lightning me-1"></i>Potencia</div>
                                 <div class="metric-value">${data.power} <small class="text-muted fs-6">W</small></div>
