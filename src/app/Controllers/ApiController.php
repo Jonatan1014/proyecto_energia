@@ -107,10 +107,10 @@ class ApiController {
             if ($device['should_reset_energy']) {
                 $model->clearEnergyReset($hardwareId);
                 
-                // Opcional: También podríamos borrar el historial de lecturas de la base de datos
-                // require_once __DIR__ . '/../Models/EnergyData.php';
-                // $energyModel = new EnergyData();
-                // $energyModel->purgeDeviceReadings($hardwareId);
+                // Borrar el historial de lecturas de la base de datos
+                require_once __DIR__ . '/../Models/EnergyData.php';
+                $energyModel = new EnergyData();
+                $energyModel->purgeDeviceReadings($hardwareId);
             }
 
             echo json_encode($response);

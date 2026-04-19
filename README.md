@@ -1,20 +1,6 @@
 # Medidor de Energía Inteligente IoT
 
-## Descripción
-Sistema embebido basado en IoT para monitoreo y control del consumo eléctrico residencial.
 
-## Estructura del Proyecto
-- `web/`: Aplicación web en PHP (MVC)
-- `arduino/`: Código para dispositivo embebido (ESP32 + PZEM-004T v1.0)
-
-## Instalación
-1. Navegar a `web/`
-2. Ejecutar `docker-compose up --build`
-
-## Uso
-- Acceder a http://localhost:8080
-
----
 
 # Monitor de Energía Inteligente con ESP32
 

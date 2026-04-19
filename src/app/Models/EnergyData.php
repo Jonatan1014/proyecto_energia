@@ -318,4 +318,20 @@ class EnergyData {
     public function calculateCost($energy, $rate) {
         return round($energy * $rate, 2);
     }
+
+    /**
+     * Eliminar todo el historial de lecturas de un dispositivo
+     * Esto se usa cuando el usuario resetea el contador de kWh a cero (reset_energy)
+     * para que las estadísticas (Max - Min) no calculen consumo incorrecto.
+     */
+    public function purgeDeviceReadings($hardwareId) {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM energy_readings WHERE hardware_id = ?");
+            $stmt->execute([$hardwareId]);
+            return $stmt->rowCount();
+        } catch (Exception $e) {
+            error_log("Error purging device readings: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
