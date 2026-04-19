@@ -291,7 +291,7 @@ class Alcancia {
         }
     }
 
-    public function vaciarAlcancia(?int $usuarioId, string $usuarioNombre, ?string $motivo = null): array {
+    public function retirarDinero(?int $usuarioId, string $usuarioNombre, ?float $montoRetiro = null, ?string $motivo = null): array {
         $usuarioNombre = trim($usuarioNombre);
         if ($usuarioNombre === '') {
             $usuarioNombre = 'Usuario';
@@ -306,18 +306,55 @@ class Alcancia {
         try {
             $config = $this->ensureConfig();
             $totalActual = (float)($config['total_ahorrado'] ?? 0);
+            
             if ($totalActual <= 0) {
-                throw new InvalidArgumentException('La alcancia ya esta en cero');
+                throw new InvalidArgumentException('La alcancía ya está en cero');
+            }
+
+            $montoARetirar = $totalActual;
+            $esVaciado = true;
+
+            if ($montoRetiro !== null) {
+                if ($montoRetiro <= 0) {
+                    throw new InvalidArgumentException('El monto a retirar debe ser mayor a 0');
+                }
+                if ($montoRetiro > $totalActual) {
+                    throw new InvalidArgumentException('No hay suficientes fondos. Disponible: ' . $totalActual);
+                }
+                $montoARetirar = $montoRetiro;
+                $esVaciado = (abs($totalActual - $montoRetiro) < 0.01);
             }
 
             $stmtRetiro = $this->db->prepare(
                 'INSERT INTO alcancia_retiros (alcancia_id, monto_retirado, usuario_id, usuario_nombre, motivo)
                  VALUES (1, ?, ?, ?, ?)'
             );
-            $stmtRetiro->execute([$totalActual, $usuarioId, $usuarioNombre, $motivo]);
+            $stmtRetiro->execute([$montoARetirar, $usuarioId, $usuarioNombre, $motivo]);
 
-            $this->db->prepare('UPDATE alcancia_config SET total_ahorrado = 0, updated_at = NOW() WHERE id = 1')->execute();
-            $this->db->prepare('UPDATE alcancia_metas SET monto_actual = 0, updated_at = NOW() WHERE alcancia_id = 1')->execute();
+            $nuevoTotal = max(0, $totalActual - $montoARetirar);
+            $this->db->prepare('UPDATE alcancia_config SET total_ahorrado = ?, updated_at = NOW() WHERE id = 1')->execute([$nuevoTotal]);
+
+            if ($esVaciado) {
+                $this->db->prepare('UPDATE alcancia_metas SET monto_actual = 0, updated_at = NOW() WHERE alcancia_id = 1')->execute();
+            } else {
+                // Restar a las metas progresivamente (de las activas prioridades más bajas o IDs más altos a más bajos)
+                $stmtMetas = $this->db->query('SELECT id, monto_actual FROM alcancia_metas WHERE alcancia_id = 1 AND monto_actual > 0 ORDER BY prioridad DESC, id DESC');
+                $metas = $stmtMetas->fetchAll();
+                
+                $montoRestante = $montoARetirar;
+                foreach ($metas as $meta) {
+                    if ($montoRestante <= 0) {
+                        break;
+                    }
+                    $actual = (float)$meta['monto_actual'];
+                    $quitar = min($actual, $montoRestante);
+                    
+                    $this->db->prepare('UPDATE alcancia_metas SET monto_actual = monto_actual - ?, updated_at = NOW() WHERE id = ?')
+                        ->execute([$quitar, $meta['id']]);
+                    
+                    $montoRestante -= $quitar;
+                }
+            }
 
             $this->db->commit();
             return $this->getEstado(10);

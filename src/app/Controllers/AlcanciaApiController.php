@@ -218,13 +218,14 @@ class AlcanciaApiController {
             return;
         }
 
+        $monto = isset($payload['monto']) && is_numeric($payload['monto']) ? (float)$payload['monto'] : null;
         $motivo = isset($payload['motivo']) ? (string)$payload['motivo'] : null;
         $user = AuthService::getUser() ?: [];
         $userId = isset($user['id']) ? (int)$user['id'] : null;
         $userName = trim((string)($user['nombre'] ?? 'Usuario'));
 
         try {
-            $estado = $this->alcanciaModel->vaciarAlcancia($userId, $userName, $motivo);
+            $estado = $this->alcanciaModel->retirarDinero($userId, $userName, $monto, $motivo);
 
             $this->jsonResponse([
                 'ok' => true,

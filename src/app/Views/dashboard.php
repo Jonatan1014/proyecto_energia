@@ -69,8 +69,8 @@
             <button id="btn-eliminar-registros" type="button" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3">
                 <i class="bi bi-eraser me-1"></i> Eliminar registros
             </button>
-            <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-danger shadow-sm rounded-pill px-3">
-                <i class="bi bi-trash3 me-1"></i> Vaciar alcancía
+            <button id="btn-vaciar-alcancia" type="button" class="btn btn-sm btn-success shadow-sm rounded-pill px-3">
+                <i class="bi bi-cash-stack me-1"></i> Retirar dinero
             </button>
         </div>
     </div>
@@ -491,28 +491,51 @@
         }
 
         btn.addEventListener('click', () => {
+            const currentTotalStr = document.getElementById('total-ahorrado')?.textContent || '0';
+            
+            const montoStr = window.prompt(`¿Cuánto dinero deseas retirar?\nDisponible actual: ${currentTotalStr}\n\n(Deja en blanco o escribe "todo" para vaciarla por completo):`, '');
+            if (montoStr === null) {
+                return; // Acción cancelada
+            }
+
+            let monto = null;
+            if (montoStr.trim() !== '' && montoStr.trim().toLowerCase() !== 'todo') {
+                monto = parseInt(montoStr.replace(/[^0-9]/g, ''), 10);
+                if (isNaN(monto) || monto <= 0) {
+                    window.alert('Por favor, ingresa una cantidad numérica válida mayor a 0, o la palabra "todo".');
+                    return;
+                }
+            }
+
             const motivo = window.prompt('Motivo del retiro (opcional):', '') || '';
-            const confirmar = window.confirm('Se vaciara la alcancia y quedara en cero. Continuar?');
+            const confirmMsg = monto ? `¿Estás seguro de retirar $ ${formatMoney(monto)}?` : 'Se vaciará completamente la alcancía. ¿Continuar?';
+            
+            const confirmar = window.confirm(confirmMsg);
             if (!confirmar) {
                 return;
+            }
+
+            const payload = { motivo: motivo };
+            if (monto !== null) {
+                payload.monto = monto;
             }
 
             fetch('api/alcancia/vaciar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ motivo })
+                body: JSON.stringify(payload)
             })
                 .then((r) => r.json())
                 .then((data) => {
                     if (!data.ok) {
-                        showMessage('danger', data.error || 'No se pudo vaciar la alcancia');
+                        showMessage('danger', data.error || 'No se pudo retirar el dinero');
                         return;
                     }
 
-                    showMessage('success', data.message || 'Alcancia vaciada correctamente');
+                    showMessage('success', data.message || 'Dinero retirado correctamente');
                     renderEstado(data);
                 })
-                .catch(() => showMessage('danger', 'Error de red vaciando alcancia'));
+                .catch(() => showMessage('danger', 'Error de red realizando el retiro'));
         });
     }
 
