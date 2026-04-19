@@ -386,12 +386,12 @@ class Alcancia {
         }
     }
 
-    public function iniciarSesionPersonal(int $usuarioId, int $minutos): array {
-        if ($usuarioId <= 0 || $minutos <= 0) {
+    public function iniciarSesionPersonal(int $usuarioId, int $segundos): array {
+        if ($usuarioId <= 0 || $segundos <= 0) {
             throw new InvalidArgumentException('Datos de sesion invalidos');
         }
 
-        $venceAt = date('Y-m-d H:i:s', time() + ($minutos * 60));
+        $venceAt = date('Y-m-d H:i:s', time() + $segundos);
         
         $this->db->prepare('UPDATE alcancia_config SET session_usuario_id = ?, session_vence_at = ?, updated_at = NOW() WHERE id = 1')
             ->execute([$usuarioId, $venceAt]);

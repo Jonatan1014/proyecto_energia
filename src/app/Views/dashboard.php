@@ -640,13 +640,13 @@
         if (!btn) return;
 
         btn.addEventListener('click', () => {
-            const mins = window.prompt('¿En cuántos minutos ingresarás el dinero? (Sesión personal):', '10');
-            if (!mins) return;
+            const secs = window.prompt('¿En cuántos segundos ingresarás el dinero? (Sesión personal):', '20');
+            if (!secs) return;
 
             fetch('api/alcancia/session/iniciar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ minutos: parseInt(mins) })
+                body: JSON.stringify({ segundos: parseInt(secs) })
             })
             .then(r => r.json())
             .then(res => {

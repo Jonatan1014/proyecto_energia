@@ -213,11 +213,11 @@ class AlcanciaApiController {
         }
 
         $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
-        $minutos = (int)($payload['minutos'] ?? 0);
+        $segundos = (int)($payload['segundos'] ?? 0);
         $userId = AuthService::getUserId();
 
         try {
-            $estado = $this->alcanciaModel->iniciarSesionPersonal($userId, $minutos);
+            $estado = $this->alcanciaModel->iniciarSesionPersonal($userId, $segundos);
             $this->jsonResponse(['ok' => true, 'message' => 'Sesion personal iniciada', 'data' => $estado]);
         } catch (Throwable $e) {
             $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
