@@ -390,4 +390,20 @@ class Alcancia {
             'ultima_actualizacion' => (string)($estado['alcancia']['updated_at'] ?? date('Y-m-d H:i:s')),
         ];
     }
+
+    public function eliminarRegistros(): array {
+        $this->db->beginTransaction();
+        try {
+            $this->ensureConfig();
+
+            $this->db->exec('DELETE FROM alcancia_depositos WHERE alcancia_id = 1');
+            $this->db->exec('DELETE FROM alcancia_retiros WHERE alcancia_id = 1');
+
+            $this->db->commit();
+            return $this->getEstado(10);
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
 }

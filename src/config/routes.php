@@ -26,6 +26,7 @@ return [
     '/api/alcancia/stream' => ['controller' => 'AlcanciaApiController', 'action' => 'streamEstado'],
     '/api/alcancia/meta/actualizar' => ['controller' => 'AlcanciaApiController', 'action' => 'actualizarMeta'],
     '/api/alcancia/vaciar' => ['controller' => 'AlcanciaApiController', 'action' => 'vaciar'],
+    '/api/alcancia/eliminar-registros' => ['controller' => 'AlcanciaApiController', 'action' => 'eliminarRegistros'],
     '/api/alcancia/comando' => ['controller' => 'AlcanciaApiController', 'action' => 'enviarComando'],
     '/tariffs' => ['controller' => 'TariffController', 'action' => 'index'],
     '/tariffs/create' => ['controller' => 'TariffController', 'action' => 'create'],

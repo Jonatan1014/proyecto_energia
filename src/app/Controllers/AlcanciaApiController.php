@@ -240,6 +240,45 @@ class AlcanciaApiController {
         }
     }
 
+    public function eliminarRegistros(): void {
+        $statusCode = 200;
+        $response = ['ok' => false, 'error' => 'Solicitud invalida'];
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $statusCode = 405;
+            $response = ['error' => self::MSG_METODO_NO_PERMITIDO];
+        } elseif (!AuthService::isLoggedIn()) {
+            $statusCode = 401;
+            $response = ['error' => self::MSG_NO_AUTORIZADO];
+        } else {
+            $payload = json_decode(file_get_contents(self::INPUT_STREAM) ?: '{}', true);
+
+            if (!is_array($payload)) {
+                $statusCode = 400;
+                $response = ['error' => self::MSG_JSON_INVALIDO];
+            } elseif (empty($payload['confirmar'])) {
+                $statusCode = 422;
+                $response = ['ok' => false, 'error' => 'Debes confirmar la eliminacion de registros'];
+            } else {
+                try {
+                    $estado = $this->alcanciaModel->eliminarRegistros();
+                    $statusCode = 200;
+                    $response = [
+                        'ok' => true,
+                        'message' => 'Registros eliminados correctamente',
+                        'data' => $estado,
+                    ];
+                } catch (Throwable $e) {
+                    error_log('Error en eliminarRegistros: ' . $e->getMessage());
+                    $statusCode = 500;
+                    $response = ['ok' => false, 'error' => 'Error interno al eliminar registros'];
+                }
+            }
+        }
+
+        $this->jsonResponse($response, $statusCode);
+    }
+
     private function jsonResponse(array $payload, int $statusCode = 200): void {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
